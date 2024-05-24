@@ -32,7 +32,7 @@ namespace Assets.World
         public Vector2 CameraStartBlock;
         private int PreviousCamX;
         private int PreviousCamY;
-        public uint WdtFileDataId;
+        public  int WdtFileDataId;
         private int pullFrom = 0;
 
         // Use this for initialization
@@ -73,7 +73,7 @@ namespace Assets.World
                     Vector2 coords = PulledObj.GetComponent<ADTBlock>().coords;
 
                     TerrainHandler.QueueItem queueItem = new TerrainHandler.QueueItem();
-                    uint fileDataId = PulledObj.GetComponent<ADTBlock>().FileDataId;
+                    int fileDataId = PulledObj.GetComponent<ADTBlock>().FileDataId;
                     queueItem.FileDataId = fileDataId;
 
                     ADTMatrix[(int)coords.x, (int)coords.y] = 0;
@@ -100,7 +100,7 @@ namespace Assets.World
             Resources.UnloadUnusedAssets();
         }
 
-        public void LoadSingleADT(uint WdtFileDataId, Vector2 playerSpawn)
+        public void LoadSingleADT(int WdtFileDataId, Vector2 playerSpawn)
         {
             ADT.working = true;
             TerrainParent.GetComponent<TerrainHandler>().frameBusy = false;
@@ -130,7 +130,7 @@ namespace Assets.World
             // Loader();
         }
 
-        public void LoadWorld(uint WdtFileDataId, Vector2 playerSpawn)
+        public void LoadWorld(int WdtFileDataId, Vector2 playerSpawn)
         {
             ADT.working = true;
             TerrainParent.GetComponent<TerrainHandler>().frameBusy = false;

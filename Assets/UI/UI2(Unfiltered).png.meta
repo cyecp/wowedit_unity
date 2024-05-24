@@ -1,42 +1,108 @@
 fileFormatVersion: 2
 guid: 74329754cdbab884393ee4b0903c2f60
 TextureImporter:
-  fileIDToRecycleName:
-    21300000: Button Close Window
-    21300002: BlackBorder_TransparentCenter
-    21300004: Win10_MenuBarOption_Normal
-    21300006: Win10_Toolbar_EndLine
-    21300008: Win10_Toolbar_HorizontalEndLine
-    21300010: Win10_Toolbar_HorizontalSeparator
-    21300012: Win10_MenuBarOption_Over
-    21300014: Win10_MenuBarOption_Pressed
-    21300016: Win10_MenuBoxSeparator
-    21300018: Win10_Toolbar_VerticalEndLine
-    21300020: Win10_Toolbar_VerticalSeparator
-    21300022: Button Highlighted
-    21300024: Button Normal
-    21300026: Button Pressed
-    21300028: Input Box Border
-    21300030: White 3x3
-    21300032: Window Body Border
-    21300034: Window Border
-    21300036: Win10_UI_HorizontalSeparator
-    21300038: Win10_UI_VerticalLeftSeparator
-    21300040: Win7_MenuBarOption_Normal
-    21300042: UI2(Unfiltered)_20
-    21300044: Win10_MenuBox
-    21300046: Win10_Toolbar_HorizontalGrip
-    21300048: Win10_MenuBoxButton
-    21300050: Win10_MenuBoxButton_Highlight
-    21300052: Win10_Toolbar_VerticalGrip
-    21300054: BrushBox
-    21300056: CheckMarkBox
-    21300058: Slider_Handle
-    21300060: Slider_FillGreen
-    21300062: Slider_FillGray
-    21300064: Slider_Background
+  internalIDToNameTable:
+  - first:
+      213: 21300000
+    second: Button Close Window
+  - first:
+      213: 21300002
+    second: BlackBorder_TransparentCenter
+  - first:
+      213: 21300004
+    second: Win10_MenuBarOption_Normal
+  - first:
+      213: 21300006
+    second: Win10_Toolbar_EndLine
+  - first:
+      213: 21300008
+    second: Win10_Toolbar_HorizontalEndLine
+  - first:
+      213: 21300010
+    second: Win10_Toolbar_HorizontalSeparator
+  - first:
+      213: 21300012
+    second: Win10_MenuBarOption_Over
+  - first:
+      213: 21300014
+    second: Win10_MenuBarOption_Pressed
+  - first:
+      213: 21300016
+    second: Win10_MenuBoxSeparator
+  - first:
+      213: 21300018
+    second: Win10_Toolbar_VerticalEndLine
+  - first:
+      213: 21300020
+    second: Win10_Toolbar_VerticalSeparator
+  - first:
+      213: 21300022
+    second: Button Highlighted
+  - first:
+      213: 21300024
+    second: Button Normal
+  - first:
+      213: 21300026
+    second: Button Pressed
+  - first:
+      213: 21300028
+    second: Input Box Border
+  - first:
+      213: 21300030
+    second: White 3x3
+  - first:
+      213: 21300032
+    second: Window Body Border
+  - first:
+      213: 21300034
+    second: Window Border
+  - first:
+      213: 21300036
+    second: Win10_UI_HorizontalSeparator
+  - first:
+      213: 21300038
+    second: Win10_UI_VerticalLeftSeparator
+  - first:
+      213: 21300040
+    second: Win7_MenuBarOption_Normal
+  - first:
+      213: 21300042
+    second: UI2(Unfiltered)_20
+  - first:
+      213: 21300044
+    second: Win10_MenuBox
+  - first:
+      213: 21300046
+    second: Win10_Toolbar_HorizontalGrip
+  - first:
+      213: 21300048
+    second: Win10_MenuBoxButton
+  - first:
+      213: 21300050
+    second: Win10_MenuBoxButton_Highlight
+  - first:
+      213: 21300052
+    second: Win10_Toolbar_VerticalGrip
+  - first:
+      213: 21300054
+    second: BrushBox
+  - first:
+      213: 21300056
+    second: CheckMarkBox
+  - first:
+      213: 21300058
+    second: Slider_Handle
+  - first:
+      213: 21300060
+    second: Slider_FillGreen
+  - first:
+      213: 21300062
+    second: Slider_FillGray
+  - first:
+      213: 21300064
+    second: Slider_Background
   externalObjects: {}
-  serializedVersion: 7
+  serializedVersion: 12
   mipmaps:
     mipMapMode: 0
     enableMipMap: 0
@@ -56,6 +122,8 @@ TextureImporter:
   isReadable: 0
   streamingMipmaps: 0
   streamingMipmapsPriority: 0
+  vTOnly: 0
+  ignoreMasterTextureLimit: 0
   grayScaleToAlpha: 0
   generateCubemap: 6
   cubemapConvolution: 0
@@ -65,8 +133,8 @@ TextureImporter:
   textureSettings:
     serializedVersion: 2
     filterMode: 0
-    aniso: -1
-    mipBias: -100
+    aniso: 1
+    mipBias: 0
     wrapU: 1
     wrapV: 1
     wrapW: 1
@@ -87,11 +155,16 @@ TextureImporter:
   textureType: 8
   textureShape: 1
   singleChannelComponent: 0
+  flipbookRows: 1
+  flipbookColumns: 1
   maxTextureSizeSet: 0
   compressionQualitySet: 0
   textureFormatSet: 0
+  ignorePngGamma: 0
+  applyGammaDecoding: 1
+  cookieLightType: 1
   platformSettings:
-  - serializedVersion: 2
+  - serializedVersion: 3
     buildTarget: DefaultTexturePlatform
     maxTextureSize: 512
     resizeAlgorithm: 0
@@ -102,7 +175,8 @@ TextureImporter:
     allowsAlphaSplitting: 0
     overridden: 0
     androidETC2FallbackOverride: 0
-  - serializedVersion: 2
+    forceMaximumCompressionQuality_BC6H_BC7: 1
+  - serializedVersion: 3
     buildTarget: Standalone
     maxTextureSize: 512
     resizeAlgorithm: 0
@@ -113,7 +187,8 @@ TextureImporter:
     allowsAlphaSplitting: 0
     overridden: 0
     androidETC2FallbackOverride: 0
-  - serializedVersion: 2
+    forceMaximumCompressionQuality_BC6H_BC7: 1
+  - serializedVersion: 3
     buildTarget: iPhone
     maxTextureSize: 512
     resizeAlgorithm: 0
@@ -124,7 +199,8 @@ TextureImporter:
     allowsAlphaSplitting: 0
     overridden: 0
     androidETC2FallbackOverride: 0
-  - serializedVersion: 2
+    forceMaximumCompressionQuality_BC6H_BC7: 1
+  - serializedVersion: 3
     buildTarget: Android
     maxTextureSize: 512
     resizeAlgorithm: 0
@@ -135,6 +211,31 @@ TextureImporter:
     allowsAlphaSplitting: 0
     overridden: 0
     androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 1
+  - serializedVersion: 3
+    buildTarget: Server
+    maxTextureSize: 512
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 0
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 1
+  - serializedVersion: 3
+    buildTarget: Windows Store Apps
+    maxTextureSize: 512
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 0
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 1
   spriteSheet:
     serializedVersion: 2
     sprites:
@@ -154,6 +255,7 @@ TextureImporter:
       tessellationDetail: 0
       bones: []
       spriteID: 6d5c7d3444fbff0489ffe42505d992a9
+      internalID: 21300000
       vertices: []
       indices: 
       edges: []
@@ -174,6 +276,7 @@ TextureImporter:
       tessellationDetail: 0
       bones: []
       spriteID: 067d914a1141b354a88c35c60c3b0afa
+      internalID: 21300002
       vertices: []
       indices: 
       edges: []
@@ -194,6 +297,7 @@ TextureImporter:
       tessellationDetail: 0
       bones: []
       spriteID: 4a37a5fa92b9c9043b479adb1c0329af
+      internalID: 21300004
       vertices: []
       indices: 
       edges: []
@@ -214,6 +318,7 @@ TextureImporter:
       tessellationDetail: 0
       bones: []
       spriteID: 252d76e8ed2cba248b414c780096d577
+      internalID: 21300006
       vertices: []
       indices: 
       edges: []
@@ -234,6 +339,7 @@ TextureImporter:
       tessellationDetail: 0
       bones: []
       spriteID: 827676be11a4e374280650f384e8ab97
+      internalID: 21300008
       vertices: []
       indices: 
       edges: []
@@ -254,6 +360,7 @@ TextureImporter:
       tessellationDetail: 0
       bones: []
       spriteID: 10a1ff94ee2da664389fa40d48049999
+      internalID: 21300010
       vertices: []
       indices: 
       edges: []
@@ -274,6 +381,7 @@ TextureImporter:
       tessellationDetail: 0
       bones: []
       spriteID: 55b22eed7db248847a51136006defe1a
+      internalID: 21300012
       vertices: []
       indices: 
       edges: []
@@ -294,6 +402,7 @@ TextureImporter:
       tessellationDetail: 0
       bones: []
       spriteID: fe858a3b1eda2a6468f34383d22a1740
+      internalID: 21300014
       vertices: []
       indices: 
       edges: []
@@ -314,6 +423,7 @@ TextureImporter:
       tessellationDetail: 0
       bones: []
       spriteID: f5c58bbdf72e11c4fb56ee6e2f0a17a0
+      internalID: 21300016
       vertices: []
       indices: 
       edges: []
@@ -334,6 +444,7 @@ TextureImporter:
       tessellationDetail: 0
       bones: []
       spriteID: 822144cfec2448541a4f7ce84bbd8002
+      internalID: 21300018
       vertices: []
       indices: 
       edges: []
@@ -354,6 +465,7 @@ TextureImporter:
       tessellationDetail: 0
       bones: []
       spriteID: 19b94945da119cc438434eacda68a27a
+      internalID: 21300020
       vertices: []
       indices: 
       edges: []
@@ -374,6 +486,7 @@ TextureImporter:
       tessellationDetail: 0
       bones: []
       spriteID: 146f3416cd3b07f439044fc181a4fca6
+      internalID: 21300022
       vertices: []
       indices: 
       edges: []
@@ -394,6 +507,7 @@ TextureImporter:
       tessellationDetail: 0
       bones: []
       spriteID: 660028abba07f3544b4c709c075dbb6f
+      internalID: 21300024
       vertices: []
       indices: 
       edges: []
@@ -414,6 +528,7 @@ TextureImporter:
       tessellationDetail: 0
       bones: []
       spriteID: 374895f6dcfff02489bd6fa8e06aa544
+      internalID: 21300026
       vertices: []
       indices: 
       edges: []
@@ -434,6 +549,7 @@ TextureImporter:
       tessellationDetail: 0
       bones: []
       spriteID: 7adb4e3de5be37248a3ad1c2831a043f
+      internalID: 21300028
       vertices: []
       indices: 
       edges: []
@@ -454,6 +570,7 @@ TextureImporter:
       tessellationDetail: 0
       bones: []
       spriteID: 00fb3da1e45f09042ab18e832d45fa04
+      internalID: 21300030
       vertices: []
       indices: 
       edges: []
@@ -474,6 +591,7 @@ TextureImporter:
       tessellationDetail: 0
       bones: []
       spriteID: e77c5255854cd104685466fe3b2ea60e
+      internalID: 21300032
       vertices: []
       indices: 
       edges: []
@@ -494,6 +612,7 @@ TextureImporter:
       tessellationDetail: 0
       bones: []
       spriteID: 10ee0f2aad5690644865dadd233ce160
+      internalID: 21300034
       vertices: []
       indices: 
       edges: []
@@ -514,6 +633,7 @@ TextureImporter:
       tessellationDetail: 0
       bones: []
       spriteID: 2d8bd7144bfa678458d67be286202552
+      internalID: 21300036
       vertices: []
       indices: 
       edges: []
@@ -534,6 +654,7 @@ TextureImporter:
       tessellationDetail: 0
       bones: []
       spriteID: 34b9feb2533630e4a9c123deb269aa8d
+      internalID: 21300038
       vertices: []
       indices: 
       edges: []
@@ -554,6 +675,7 @@ TextureImporter:
       tessellationDetail: 0
       bones: []
       spriteID: b7244b81c37aa8140bb73cea319a6d9d
+      internalID: 21300040
       vertices: []
       indices: 
       edges: []
@@ -574,6 +696,7 @@ TextureImporter:
       tessellationDetail: 0
       bones: []
       spriteID: c4b01e798db7f63409f611b8a519028f
+      internalID: 21300044
       vertices: []
       indices: 
       edges: []
@@ -594,6 +717,7 @@ TextureImporter:
       tessellationDetail: 0
       bones: []
       spriteID: bfc5549286db5d849a1b1ea51786f7a0
+      internalID: 21300046
       vertices: []
       indices: 
       edges: []
@@ -614,6 +738,7 @@ TextureImporter:
       tessellationDetail: 0
       bones: []
       spriteID: 6d4077e83f70b7f418ac1bdaa70df67f
+      internalID: 21300048
       vertices: []
       indices: 
       edges: []
@@ -634,6 +759,7 @@ TextureImporter:
       tessellationDetail: 0
       bones: []
       spriteID: f07f29ec325fcae4d903df8414bfaeff
+      internalID: 21300050
       vertices: []
       indices: 
       edges: []
@@ -654,6 +780,7 @@ TextureImporter:
       tessellationDetail: 0
       bones: []
       spriteID: 28934898b259b174d848e2a9e22b613b
+      internalID: 21300052
       vertices: []
       indices: 
       edges: []
@@ -674,6 +801,7 @@ TextureImporter:
       tessellationDetail: 0
       bones: []
       spriteID: 90ae07d31202f6e448f8cb99c2c7b005
+      internalID: 21300054
       vertices: []
       indices: 
       edges: []
@@ -694,6 +822,7 @@ TextureImporter:
       tessellationDetail: 0
       bones: []
       spriteID: 679e802b65ac18d4895731821d42d65c
+      internalID: 21300056
       vertices: []
       indices: 
       edges: []
@@ -714,6 +843,7 @@ TextureImporter:
       tessellationDetail: 0
       bones: []
       spriteID: 91a29386f7e224c4c8de8d5a78cd3250
+      internalID: 21300058
       vertices: []
       indices: 
       edges: []
@@ -734,6 +864,7 @@ TextureImporter:
       tessellationDetail: 0
       bones: []
       spriteID: 2fafa4895d460774491aadde05d59f7b
+      internalID: 21300060
       vertices: []
       indices: 
       edges: []
@@ -754,6 +885,7 @@ TextureImporter:
       tessellationDetail: 0
       bones: []
       spriteID: 2608ad6e96e0ac84887e9eb498e63694
+      internalID: 21300062
       vertices: []
       indices: 
       edges: []
@@ -774,6 +906,7 @@ TextureImporter:
       tessellationDetail: 0
       bones: []
       spriteID: acf2df86ca89be5488e3be4ed28663b7
+      internalID: 21300064
       vertices: []
       indices: 
       edges: []
@@ -791,10 +924,45 @@ TextureImporter:
     physicsShape: []
     bones: []
     spriteID: eb99f71a08d6ac740b8a77b031e2568e
+    internalID: 0
     vertices: []
     indices: 
     edges: []
     weights: []
+    secondaryTextures: []
+    nameFileIdTable:
+      BlackBorder_TransparentCenter: 21300002
+      BrushBox: 21300054
+      Button Close Window: 21300000
+      Button Highlighted: 21300022
+      Button Normal: 21300024
+      Button Pressed: 21300026
+      CheckMarkBox: 21300056
+      Input Box Border: 21300028
+      Slider_Background: 21300064
+      Slider_FillGray: 21300062
+      Slider_FillGreen: 21300060
+      Slider_Handle: 21300058
+      White 3x3: 21300030
+      Win10_MenuBarOption_Normal: 21300004
+      Win10_MenuBarOption_Over: 21300012
+      Win10_MenuBarOption_Pressed: 21300014
+      Win10_MenuBox: 21300044
+      Win10_MenuBoxButton: 21300048
+      Win10_MenuBoxButton_Highlight: 21300050
+      Win10_MenuBoxSeparator: 21300016
+      Win10_Toolbar_EndLine: 21300006
+      Win10_Toolbar_HorizontalEndLine: 21300008
+      Win10_Toolbar_HorizontalGrip: 21300046
+      Win10_Toolbar_HorizontalSeparator: 21300010
+      Win10_Toolbar_VerticalEndLine: 21300018
+      Win10_Toolbar_VerticalGrip: 21300052
+      Win10_Toolbar_VerticalSeparator: 21300020
+      Win10_UI_HorizontalSeparator: 21300036
+      Win10_UI_VerticalLeftSeparator: 21300038
+      Win7_MenuBarOption_Normal: 21300040
+      Window Body Border: 21300032
+      Window Border: 21300034
   spritePackingTag: 
   pSDRemoveMatte: 0
   pSDShowRemoveMatteOption: 0

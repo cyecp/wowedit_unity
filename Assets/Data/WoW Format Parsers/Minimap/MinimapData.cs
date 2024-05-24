@@ -19,7 +19,7 @@ public static class MinimapData
 
     public struct MinimapBlockData
     {
-        public uint fileDataId;
+        public int fileDataId;
         public Vector2 coords;
         public byte[] minimapByteData;
         public BLPinfo textureInfo;

@@ -27,7 +27,7 @@ namespace Assets.Data.WoW_Format_Parsers.ADT
             {
                 ADTObjData.M2PlacementInfo data = new ADTObjData.M2PlacementInfo();
 
-                data.nameId     = reader.ReadUInt32();                                          // references an entry in the MMID chunk, specifying the model to use.
+                data.nameId     = reader.ReadInt32();                                          // references an entry in the MMID chunk, specifying the model to use.
                                                                                                 // if flag mddf_entry_is_filedata_id is set, a file data id instead, ignoring MMID.
                 data.uniqueID   = reader.ReadInt32();                                           // This ID should be unique for all ADTs currently loaded.
                                                                                                 // Best, they are unique for the whole map. Blizzard has these unique for the whole game.
@@ -62,7 +62,7 @@ namespace Assets.Data.WoW_Format_Parsers.ADT
             while (reader.BaseStream.Position < currentPos + MODFsize)
             {
                 ADTObjData.WMOPlacementInfo data = new ADTObjData.WMOPlacementInfo();
-                data.nameId     = reader.ReadUInt32();                                          // references an entry in the MMID chunk, specifying the model to use.
+                data.nameId     = reader.ReadInt32();                                          // references an entry in the MMID chunk, specifying the model to use.
                                                                                                 // if flag mddf_entry_is_filedata_id is set, a file data id instead, ignoring MMID.
                 data.uniqueID   = reader.ReadInt32();                                           // This ID should be unique for all ADTs currently loaded.
                                                                                                 // Best, they are unique for the whole map. Blizzard has these unique for the whole game.

@@ -45,3 +45,6 @@ sysinfo.txt
 
 # Listfile
 listfile.csv
+/Logs
+/*.log
+/UserSettings

@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using UnityEngine;
+using System.Text.RegularExpressions;
 
 namespace CASCLib
 {
@@ -13,6 +13,7 @@ namespace CASCLib
         None = 0,
         Download = 1,
         Install = 2,
+        FileIndex = 4
     }
 
     public class VerBarConfig
@@ -74,16 +75,18 @@ namespace CASCLib
 
     public class KeyValueConfig
     {
-        private readonly Dictionary<string, List<string>> Data = new Dictionary<string, List<string>>();
+        private readonly Dictionary<string, List<string>> m_data = new Dictionary<string, List<string>>();
 
         public List<string> this[string key]
         {
             get
             {
-                Data.TryGetValue(key, out List<string> ret);
+                m_data.TryGetValue(key, out List<string> ret);
                 return ret;
             }
         }
+
+        public IReadOnlyDictionary<string, List<string>> Values => m_data;
 
         public static KeyValueConfig ReadKeyValueConfig(Stream stream)
         {
@@ -108,7 +111,7 @@ namespace CASCLib
 
                 var values = tokens[1].Trim().Split(new char[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
                 var valuesList = values.ToList();
-                result.Data.Add(tokens[0].Trim(), valuesList);
+                result.m_data.Add(tokens[0].Trim(), valuesList);
             }
             return result;
         }
@@ -121,7 +124,7 @@ namespace CASCLib
         List<KeyValueConfig> _Builds;
 
         VerBarConfig _BuildInfo;
-        VerBarConfig _CDNData;
+        VerBarConfig _CdnsData;
         VerBarConfig _VersionsData;
 
         public string Region { get; private set; }
@@ -129,44 +132,64 @@ namespace CASCLib
         public static bool ValidateData { get; set; } = true;
         public static bool ThrowOnFileNotFound { get; set; } = true;
         public static bool ThrowOnMissingDecryptionKey { get; set; } = true;
-        public static LoadFlags LoadFlags { get; set; } = LoadFlags.None;
+        public static bool UseWowTVFS { get; set; } = false;
+        public static bool UseOnlineFallbackForMissingFiles { get; set; } = true;
+        public static LoadFlags LoadFlags { get; set; } = LoadFlags.FileIndex;
 
-        private int _versionsIndex;
+        private CASCConfig() { }
 
-        public static CASCConfig LoadOnlineStorageConfig(string product, string region, bool useCurrentBuild = false)
+        public static CASCConfig LoadOnlineStorageConfig(string product, string region, bool useCurrentBuild = false, ILoggerOptions loggerOptions = null)
         {
+            if (product == null)
+                throw new ArgumentNullException(nameof(product));
+            if (region == null)
+                throw new ArgumentNullException(nameof(region));
+
+            Logger.Init(loggerOptions);
+
             var config = new CASCConfig { OnlineMode = true, Region = region, Product = product };
 
             using (var ribbit = new RibbitClient("us"))
-            using (var cdnsStream = ribbit.GetAsStream($"v1/products/{product}/cdns"))
+            using (var cdnsStream = ribbit.GetProductInfoStream(product, ProductInfoType.Cdns))
             //using (var cdnsStream = CDNIndexHandler.OpenFileDirect(string.Format("http://us.patch.battle.net:1119/{0}/cdns", product)))
             {
-                config._CDNData = VerBarConfig.ReadVerBarConfig(cdnsStream);
+                config._CdnsData = VerBarConfig.ReadVerBarConfig(cdnsStream);
             }
 
             using (var ribbit = new RibbitClient("us"))
-            using (var versionsStream = ribbit.GetAsStream($"v1/products/{product}/versions"))
+            using (var versionsStream = ribbit.GetProductInfoStream(product, ProductInfoType.Versions))
             //using (var versionsStream = CDNIndexHandler.OpenFileDirect(string.Format("http://us.patch.battle.net:1119/{0}/versions", product)))
             {
                 config._VersionsData = VerBarConfig.ReadVerBarConfig(versionsStream);
             }
 
-            for (int i = 0; i < config._VersionsData.Count; ++i)
+            CDNCache.Init(config);
+
+            config.GameType = CASCGame.DetectGameByUid(product);
+
+            if (File.Exists("fakecdnconfig"))
             {
-                if (config._VersionsData[i]["Region"] == region)
+                using (Stream stream = new FileStream("fakecdnconfig", FileMode.Open))
                 {
-                    config._versionsIndex = i;
-                    break;
+                    config._CDNConfig = KeyValueConfig.ReadKeyValueConfig(stream);
                 }
             }
-
-            config.GameType = CASCGame.DetectOnlineGame(product);
-
-            string cdnKey = config._VersionsData[config._versionsIndex]["CDNConfig"].ToLower();
-            //string cdnKey = "da4896ce91922122bc0a2371ee114423";
-            using (Stream stream = CDNIndexHandler.OpenConfigFileDirect(config, cdnKey))
+            else if (File.Exists("fakecdnconfighash"))
             {
-                config._CDNConfig = KeyValueConfig.ReadKeyValueConfig(stream);
+                string cdnKey = File.ReadAllText("fakecdnconfighash");
+                using (Stream stream = CDNIndexHandler.OpenConfigFileDirect(config, cdnKey))
+                {
+                    config._CDNConfig = KeyValueConfig.ReadKeyValueConfig(stream);
+                }
+            }
+            else
+            {
+                string cdnKey = config.GetVersionsVariable("CDNConfig").ToLower();
+                //string cdnKey = "da4896ce91922122bc0a2371ee114423";
+                using (Stream stream = CDNIndexHandler.OpenConfigFileDirect(config, cdnKey))
+                {
+                    config._CDNConfig = KeyValueConfig.ReadKeyValueConfig(stream);
+                }
             }
 
             config.ActiveBuild = 0;
@@ -177,16 +200,23 @@ namespace CASCLib
             {
                 for (int i = 0; i < config._CDNConfig["builds"].Count; i++)
                 {
-                    using (Stream stream = CDNIndexHandler.OpenConfigFileDirect(config, config._CDNConfig["builds"][i]))
+                    try
                     {
-                        var cfg = KeyValueConfig.ReadKeyValueConfig(stream);
-                        config._Builds.Add(cfg);
+                        using (Stream stream = CDNIndexHandler.OpenConfigFileDirect(config, config._CDNConfig["builds"][i]))
+                        {
+                            var cfg = KeyValueConfig.ReadKeyValueConfig(stream);
+                            config._Builds.Add(cfg);
+                        }
+                    }
+                    catch
+                    {
+                        Console.WriteLine("Failed to load build {0}", config._CDNConfig["builds"][i]);
                     }
                 }
 
                 if (useCurrentBuild)
                 {
-                    string curBuildKey = config._VersionsData[config._versionsIndex]["BuildConfig"];
+                    string curBuildKey = config.GetVersionsVariable("BuildConfig");
 
                     int buildIndex = config._CDNConfig["builds"].IndexOf(curBuildKey);
 
@@ -195,37 +225,79 @@ namespace CASCLib
                 }
             }
 
-            string buildKey = config._VersionsData[config._versionsIndex]["BuildConfig"].ToLower();
-            //string buildKey = "3b0517b51edbe0b96f6ac5ea7eaaed38";
-            using (Stream stream = CDNIndexHandler.OpenConfigFileDirect(config, buildKey))
+            if (File.Exists("fakebuildconfig"))
             {
-                var cfg = KeyValueConfig.ReadKeyValueConfig(stream);
-                config._Builds.Add(cfg);
+                using (Stream stream = new FileStream("fakebuildconfig", FileMode.Open))
+                {
+                    var cfg = KeyValueConfig.ReadKeyValueConfig(stream);
+                    config._Builds.Add(cfg);
+                }
+            }
+            else if (File.Exists("fakebuildconfighash"))
+            {
+                string buildKey = File.ReadAllText("fakebuildconfighash");
+                using (Stream stream = CDNIndexHandler.OpenConfigFileDirect(config, buildKey))
+                {
+                    var cfg = KeyValueConfig.ReadKeyValueConfig(stream);
+                    config._Builds.Add(cfg);
+                }
+            }
+            else
+            {
+                string buildKey = config.GetVersionsVariable("BuildConfig").ToLower();
+                //string buildKey = "3b0517b51edbe0b96f6ac5ea7eaaed38";
+                using (Stream stream = CDNIndexHandler.OpenConfigFileDirect(config, buildKey))
+                {
+                    var cfg = KeyValueConfig.ReadKeyValueConfig(stream);
+                    config._Builds.Add(cfg);
+                }
             }
 
             return config;
         }
 
-        public static CASCConfig LoadLocalStorageConfig(string basePath, string product = null)
+        public static CASCConfig LoadLocalStorageConfig(string basePath, string product, ILoggerOptions loggerOptions = null)
         {
-            var config = new CASCConfig { OnlineMode = false, BasePath = basePath, Product = product };
-
-            config.GameType = CASCGame.DetectLocalGame(basePath);
-
-            if (config.GameType == CASCGameType.Agent || config.GameType == CASCGameType.Hearthstone)
-                throw new Exception("Local mode not supported for this game!");
+            if (basePath == null)
+                throw new ArgumentNullException(nameof(basePath));
+            if (product == null)
+                throw new ArgumentNullException(nameof(product));
 
             string buildInfoPath = Path.Combine(basePath, ".build.info");
+
+            if (!File.Exists(buildInfoPath))
+                throw new Exception("Local mode not supported for this game!");
+
+            Logger.Init(loggerOptions);
+
+            var config = new CASCConfig { OnlineMode = false, BasePath = basePath, Product = product };
 
             using (Stream buildInfoStream = new FileStream(buildInfoPath, FileMode.Open))
             {
                 config._BuildInfo = VerBarConfig.ReadVerBarConfig(buildInfoStream);
             }
 
-            Dictionary<string, string> bi = config.GetActiveBuild(product);
+            CASCGameType gameType;
 
-            if (bi == null)
-                throw new Exception("Can't find active BuildInfoEntry");
+            if (!HasConfigVariable(config._BuildInfo, "Product"))
+            {
+                var detectedGameType = CASCGame.DetectLocalGame(basePath, product, config.GetBuildInfoVariable("BuildKey"));
+                if (detectedGameType.HasValue)
+                    gameType = detectedGameType.Value;
+                else
+                    throw new Exception($"No product {product} found at {basePath}");
+            }
+            else
+            {
+                string productUid = config.GetBuildInfoVariable("Product");
+
+                if (productUid == null)
+                    throw new Exception($"No product {product} found at {basePath}");
+
+                gameType = CASCGame.DetectGameByUid(product);
+            }
+
+            config.GameType = gameType;
 
             string dataFolder = CASCGame.GetDataFolder(config.GameType);
 
@@ -233,38 +305,64 @@ namespace CASCLib
 
             config._Builds = new List<KeyValueConfig>();
 
-            string buildKey = bi["BuildKey"];
-            string buildCfgPath = Path.Combine(basePath, dataFolder, "config", buildKey.Substring(0, 2), buildKey.Substring(2, 2), buildKey);
-            using (Stream stream = new FileStream(buildCfgPath, FileMode.Open))
+            if (File.Exists("fakebuildconfig"))
             {
-                config._Builds.Add(KeyValueConfig.ReadKeyValueConfig(stream));
-            }
-
-            string cdnKey = bi["CDNKey"];
-            string cdnCfgPath = Path.Combine(basePath, dataFolder, "config", cdnKey.Substring(0, 2), cdnKey.Substring(2, 2), cdnKey);
-            using (Stream stream = new FileStream(cdnCfgPath, FileMode.Open))
-            {
-                config._CDNConfig = KeyValueConfig.ReadKeyValueConfig(stream);
-            }
-
-            return config;
-        }
-
-        private Dictionary<string, string> GetActiveBuild(string product = null)
-        {
-            if (_BuildInfo == null)
-                return null;
-
-            for (int i = 0; i < _BuildInfo.Count; ++i)
-            {
-                var bi = _BuildInfo[i];
-                if (bi["Active"] == "1" && (product == null || bi["Product"] == product))
+                using (Stream stream = new FileStream("fakebuildconfig", FileMode.Open))
                 {
-                    return bi;
+                    var cfg = KeyValueConfig.ReadKeyValueConfig(stream);
+                    config._Builds.Add(cfg);
+                }
+            }
+            else if (File.Exists("fakebuildconfighash"))
+            {
+                string buildKey = File.ReadAllText("fakebuildconfighash");
+                string buildCfgPath = Path.Combine(basePath, dataFolder, "config", buildKey.Substring(0, 2), buildKey.Substring(2, 2), buildKey);
+                using (Stream stream = new FileStream(buildCfgPath, FileMode.Open))
+                {
+                    config._Builds.Add(KeyValueConfig.ReadKeyValueConfig(stream));
+                }
+            }
+            else
+            {
+                string buildKey = config.GetBuildInfoVariable("BuildKey");
+                //string buildKey = "5a05c58e28d0b2c3245954b6f4e2ae66";
+                string buildCfgPath = Path.Combine(basePath, dataFolder, "config", buildKey.Substring(0, 2), buildKey.Substring(2, 2), buildKey);
+                using (Stream stream = new FileStream(buildCfgPath, FileMode.Open))
+                {
+                    config._Builds.Add(KeyValueConfig.ReadKeyValueConfig(stream));
                 }
             }
 
-            return null;
+            if (File.Exists("fakecdnconfig"))
+            {
+                using (Stream stream = new FileStream("fakecdnconfig", FileMode.Open))
+                {
+                    config._CDNConfig = KeyValueConfig.ReadKeyValueConfig(stream);
+                }
+            }
+            else if (File.Exists("fakecdnconfighash"))
+            {
+                string cdnKey = File.ReadAllText("fakecdnconfighash");
+                string cdnCfgPath = Path.Combine(basePath, dataFolder, "config", cdnKey.Substring(0, 2), cdnKey.Substring(2, 2), cdnKey);
+                using (Stream stream = new FileStream(cdnCfgPath, FileMode.Open))
+                {
+                    config._CDNConfig = KeyValueConfig.ReadKeyValueConfig(stream);
+                }
+            }
+            else
+            {
+                string cdnKey = config.GetBuildInfoVariable("CDNKey");
+                //string cdnKey = "23d301e8633baaa063189ca9442b3088";
+                string cdnCfgPath = Path.Combine(basePath, dataFolder, "config", cdnKey.Substring(0, 2), cdnKey.Substring(2, 2), cdnKey);
+                using (Stream stream = new FileStream(cdnCfgPath, FileMode.Open))
+                {
+                    config._CDNConfig = KeyValueConfig.ReadKeyValueConfig(stream);
+                }
+            }
+
+            CDNCache.Init(config);
+
+            return config;
         }
 
         public string BasePath { get; private set; }
@@ -273,39 +371,17 @@ namespace CASCLib
 
         public int ActiveBuild { get; set; }
 
-        public string BuildName { get { return GetActiveBuild()?["Version"] ?? _VersionsData[_versionsIndex]["VersionsName"]; } }
-
-        public uint GetBuildNumber()
-        {
-            uint buildNumber = 0;
-            List<string> value = _Builds[ActiveBuild]["build-name"];
-            foreach (var line in value)
-            {
-                for (var i = 0; i < line.Length; ++i)
-                {
-                    if (char.IsDigit(line[i]) && char.IsDigit(line[i + 1]) && char.IsDigit(line[i + 2]))
-                    {
-                        int index = i;
-                        while (index < line.Length && char.IsDigit(line[index]))
-                            buildNumber = (uint)((buildNumber * 10) + (line[index++] - '0'));
-
-                        break;
-                    }
-                }
-            }
-
-            return buildNumber;
-        }
+        public string VersionName { get { return GetBuildInfoVariable("Version") ?? GetVersionsVariable("VersionsName"); } }
 
         public string Product { get; private set; }
 
-        public MD5Hash RootMD5 => _Builds[ActiveBuild]["root"][0].ToByteArray().ToMD5();
+        public MD5Hash RootCKey => _Builds[ActiveBuild]["root"][0].FromHexString().ToMD5();
 
-        public MD5Hash InstallMD5 => _Builds[ActiveBuild]["install"][0].ToByteArray().ToMD5();
+        public MD5Hash InstallCKey => _Builds[ActiveBuild]["install"][0].FromHexString().ToMD5();
 
         public string InstallSize => _Builds[ActiveBuild]["install-size"][0];
 
-        public MD5Hash DownloadMD5 => _Builds[ActiveBuild]["download"][0].ToByteArray().ToMD5();
+        public MD5Hash DownloadCKey => _Builds[ActiveBuild]["download"][0].FromHexString().ToMD5();
 
         public string DownloadSize => _Builds[ActiveBuild]["download-size"][0];
 
@@ -313,17 +389,54 @@ namespace CASCLib
 
         //public string PartialPrioritySize => _Builds[ActiveBuild]["partial-priority-size"][0];
 
-        public MD5Hash EncodingMD5 => _Builds[ActiveBuild]["encoding"][0].ToByteArray().ToMD5();
+        public MD5Hash EncodingCKey => _Builds[ActiveBuild]["encoding"][0].FromHexString().ToMD5();
 
-        public MD5Hash EncodingKey => _Builds[ActiveBuild]["encoding"][1].ToByteArray().ToMD5();
+        public MD5Hash EncodingEKey => _Builds[ActiveBuild]["encoding"][1].FromHexString().ToMD5();
 
         public string EncodingSize => _Builds[ActiveBuild]["encoding-size"][0];
 
-        public MD5Hash PatchKey => _Builds[ActiveBuild]["patch"][0].ToByteArray().ToMD5();
+        public MD5Hash PatchEKey => _Builds[ActiveBuild]["patch"][0].FromHexString().ToMD5();
 
         public string PatchSize => _Builds[ActiveBuild]["patch-size"][0];
 
         public string BuildUID => _Builds[ActiveBuild]["build-uid"][0];
+
+        public string BuildProduct => _Builds[ActiveBuild]["build-product"][0];
+
+        public string BuildName => _Builds[ActiveBuild]["build-name"][0];
+
+        public bool IsVfsRoot => _Builds[ActiveBuild]["vfs-root"] != null;
+
+        public MD5Hash VfsRootCKey => _Builds[ActiveBuild]["vfs-root"][0].FromHexString().ToMD5();
+
+        public MD5Hash VfsRootEKey => _Builds[ActiveBuild]["vfs-root"][1].FromHexString().ToMD5();
+
+        public List<(MD5Hash CKey, MD5Hash EKey)> VfsRootList => GetVfsRootList();
+
+        private List<(MD5Hash CKey, MD5Hash EKey)> GetVfsRootList()
+        {
+            if (!IsVfsRoot)
+                return null;
+
+            var list = new List<(MD5Hash CKey, MD5Hash EKey)>();
+
+            var build = _Builds[ActiveBuild];
+
+            var regex = new Regex("(^vfs-\\d+$)");
+
+            foreach (var kvp in build.Values)
+            {
+                Match match = regex.Match(kvp.Key);
+                if (match.Success)
+                {
+                    list.Add((kvp.Value[0].FromHexString().ToMD5(), kvp.Value[1].FromHexString().ToMD5()));
+                }
+            }
+
+            return list;
+        }
+
+        private int cdnHostIndex;
 
         public string CDNHost
         {
@@ -331,54 +444,60 @@ namespace CASCLib
             {
                 if (OnlineMode)
                 {
-                    for (int i = 0; i < _CDNData.Count; i++)
-                    {
-                        var cdn = _CDNData[i];
+                    var hosts = GetCdnsVariable("Hosts").Split(' ');
 
-                        if (cdn["Name"] == Region)
-                        {
-                            var hosts = cdn["Hosts"].Split(' ');
+                    if (cdnHostIndex >= hosts.Length)
+                        cdnHostIndex = 0;
 
-                            for (int j = 0; j < hosts.Length; j++)
-                            {
-                                if (hosts[j].Contains("edgecast"))
-                                    continue;
-                                return hosts[j];
-                            }
-                        }
-                    }
-                    return _CDNData[0]["Hosts"].Split(' ')[0]; // use first
+                    return hosts[cdnHostIndex++];
                 }
                 else
                 {
-                    return _BuildInfo[0]["CDNHosts"].Split(' ')[0];
+                    return GetBuildInfoVariable("CDNHosts").Split(' ')[0];
                 }
             }
         }
 
-        public string CDNPath => OnlineMode ? _CDNData[0]["Path"] : _BuildInfo[0]["CDNPath"];
+        public string CDNPath => OnlineMode ? GetCdnsVariable("Path") : GetBuildInfoVariable("CDNPath");
 
         public string CDNUrl
         {
             get
             {
                 if (OnlineMode)
-                {
-                    int index = 0;
-
-                    for (int i = 0; i < _CDNData.Count; ++i)
-                    {
-                        if (_CDNData[i]["Name"] == Region)
-                        {
-                            index = i;
-                            break;
-                        }
-                    }
-                    return string.Format("http://{0}/{1}", _CDNData[index]["Hosts"].Split(' ')[0], _CDNData[index]["Path"]);
-                }
+                    return string.Format("http://{0}/{1}", GetCdnsVariable("Hosts").Split(' ')[0], GetCdnsVariable("Path"));
                 else
-                    return string.Format("http://{0}{1}", _BuildInfo[0]["CDNHosts"].Split(' ')[0], _BuildInfo[0]["CDNPath"]);
+                    return string.Format("http://{0}{1}", GetBuildInfoVariable("CDNHosts").Split(' ')[0], GetBuildInfoVariable("CDNPath"));
             }
+        }
+
+        public string GetBuildInfoVariable(string varName) => GetConfigVariable(_BuildInfo, "Product", Product, varName);
+
+        public string GetVersionsVariable(string varName) => GetConfigVariable(_VersionsData, "Region", Region, varName);
+
+        public string GetCdnsVariable(string varName) => GetConfigVariable(_CdnsData, "Name", Region, varName);
+
+        private static bool HasConfigVariable(VerBarConfig config, string varName) => config[0].ContainsKey(varName);
+
+        private static string GetConfigVariable(VerBarConfig config, string filterParamName, string filterParamValue, string varName)
+        {
+            if (config == null)
+                return null;
+
+            if (config.Count == 1 || !HasConfigVariable(config, filterParamName))
+            {
+                if (config[0].TryGetValue(varName, out string varValue))
+                    return varValue;
+                return null;
+            }
+
+            for (int i = 0; i < config.Count; i++)
+            {
+                var cfg = config[i];
+                if (cfg.TryGetValue(filterParamName, out string paramValue) && paramValue == filterParamValue && cfg.TryGetValue(varName, out string varValue))
+                    return varValue;
+            }
+            return null;
         }
 
         public List<string> Archives => _CDNConfig["archives"];
@@ -389,8 +508,8 @@ namespace CASCLib
 
         public string PatchArchiveGroup => _CDNConfig["patch-archive-group"][0];
 
-        public List<KeyValueConfig> Builds => _Builds;
+        public string FileIndex => _CDNConfig["file-index"][0];
 
-        public VerBarConfig BuildInfo => _BuildInfo;
+        public List<KeyValueConfig> Builds => _Builds;
     }
 }

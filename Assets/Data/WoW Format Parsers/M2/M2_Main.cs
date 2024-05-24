@@ -244,7 +244,7 @@ public static partial class M2
         var numTextures = Size / 4;
         for (int i = 0; i < numTextures; i++)
         {
-            uint texture = br.ReadUInt32();
+            int texture = br.ReadInt32();
 
             M2Texture m2Texture         = new M2Texture();
             Texture2Ddata texture2Ddata = new Texture2Ddata();
@@ -279,7 +279,7 @@ public static partial class M2
         var numSkins = Size / 4;
         for (int i = 0; i < numSkins; i++)
         {
-            SkinFiles.Add(br.ReadUInt32());
+            SkinFiles.Add(br.ReadInt32());
         }
     }
 

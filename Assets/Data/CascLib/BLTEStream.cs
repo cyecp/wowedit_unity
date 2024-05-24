@@ -7,16 +7,11 @@ using System.Security.Cryptography;
 namespace CASCLib
 {
     [Serializable]
-    class BLTEDecoderException : Exception
+    public class BLTEDecoderException : Exception
     {
         public int ErrorCode { get; }
 
         public BLTEDecoderException(int error, string message) : base(message)
-        {
-            ErrorCode = error;
-        }
-
-        public BLTEDecoderException(int error, string fmt, params object[] args) : base(string.Format(fmt, args))
         {
             ErrorCode = error;
         }
@@ -27,18 +22,18 @@ namespace CASCLib
         public int CompSize;
         public int DecompSize;
         public MD5Hash Hash;
-        public byte[] Data;
     }
 
-    class BLTEStream : Stream
+    public class BLTEStream : Stream
     {
         private BinaryReader _reader;
-        private MD5 _md5 = MD5.Create();
+        private readonly MD5 _md5 = MD5.Create();
         private MemoryStream _memStream;
         private DataBlock[] _dataBlocks;
         private Stream _stream;
         private int _blocksIndex;
         private long _length;
+        private bool _hasHeader;
 
         private const byte ENCRYPTION_SALSA20 = 0x53;
         private const byte ENCRYPTION_ARC4 = 0x41;
@@ -65,27 +60,28 @@ namespace CASCLib
             }
         }
 
-        public BLTEStream(Stream src, MD5Hash md5)
+        public BLTEStream(Stream src, in MD5Hash eKey)
         {
             _stream = src;
             _reader = new BinaryReader(src);
 
-            Parse(md5);
+            Parse(eKey);
         }
 
-        private void Parse(MD5Hash md5)
+        private void Parse(in MD5Hash eKey)
         {
             int size = (int)_reader.BaseStream.Length;
 
-            if (size < 8)
-                throw new BLTEDecoderException(0, "not enough data: {0}", 8);
+            if (size < 36)
+                throw new BLTEDecoderException(0, "Failed to parse encoding header: not enough data");
 
             int magic = _reader.ReadInt32();
 
             if (magic != BLTE_MAGIC)
-                throw new BLTEDecoderException(0, "frame header mismatch (bad BLTE file)");
+                throw new BLTEDecoderException(0, "Failed to parse encoding header: invalid BLTE header bytes");
 
             int headerSize = _reader.ReadInt32BE();
+            _hasHeader = headerSize > 0;
 
             if (CASCConfig.ValidateData)
             {
@@ -93,35 +89,38 @@ namespace CASCLib
 
                 _reader.BaseStream.Position = 0;
 
-                byte[] newHash = _md5.ComputeHash(_reader.ReadBytes(headerSize > 0 ? headerSize : size));
+                byte[] newHash = _md5.ComputeHash(_reader.ReadBytes(_hasHeader ? headerSize : size));
 
-                if (!md5.EqualsTo(newHash))
-                    throw new BLTEDecoderException(0, "data corrupted");
+                if (!eKey.EqualsTo9(newHash))
+                    throw new BLTEDecoderException(0, $"Failed to parse encoding header: hash verification failed using e-key {eKey.ToHexString()}");
 
                 _reader.BaseStream.Position = oldPos;
             }
 
             int numBlocks = 1;
 
-            if (headerSize > 0)
+            if (_hasHeader)
             {
                 if (size < 12)
-                    throw new BLTEDecoderException(0, "not enough data: {0}", 12);
+                    throw new BLTEDecoderException(0, "not enough data: size < 12");
 
                 byte[] fcbytes = _reader.ReadBytes(4);
 
+                if (fcbytes[0] != 0x0F)
+                    throw new BLTEDecoderException(0, $"Failed to parse encoding header: invalid encoding header format. Expected {0xF:x2}, but got {fcbytes[0]:x2}");
+
                 numBlocks = fcbytes[1] << 16 | fcbytes[2] << 8 | fcbytes[3] << 0;
 
-                if (fcbytes[0] != 0x0F || numBlocks == 0)
-                    throw new BLTEDecoderException(0, "bad table format 0x{0:x2}, numBlocks {1}", fcbytes[0], numBlocks);
+                if (numBlocks == 0)
+                    throw new BLTEDecoderException(0, $"Failed to parse encoding header: blocks count is 0");
 
                 int frameHeaderSize = 24 * numBlocks + 12;
 
                 if (headerSize != frameHeaderSize)
-                    throw new BLTEDecoderException(0, "header size mismatch");
+                    throw new BLTEDecoderException(0, $"Failed to parse encoding header: invalid header size. Expected {frameHeaderSize}, but got {headerSize}");
 
                 if (size < frameHeaderSize)
-                    throw new BLTEDecoderException(0, "not enough data: {0}", frameHeaderSize);
+                    throw new BLTEDecoderException(0, "not enough data: size < frameHeaderSize");
             }
 
             _dataBlocks = new DataBlock[numBlocks];
@@ -130,7 +129,7 @@ namespace CASCLib
             {
                 DataBlock block = new DataBlock();
 
-                if (headerSize != 0)
+                if (_hasHeader)
                 {
                     block.CompSize = _reader.ReadInt32BE();
                     block.DecompSize = _reader.ReadInt32BE();
@@ -150,7 +149,7 @@ namespace CASCLib
 
             ProcessNextBlock();
 
-            _length = headerSize == 0 ? _memStream.Length : _memStream.Capacity;
+            _length = _hasHeader ? _memStream.Capacity : _memStream.Length;
 
             //for (int i = 0; i < _dataBlocks.Length; i++)
             //{
@@ -158,105 +157,145 @@ namespace CASCLib
             //}
         }
 
-        private void HandleDataBlock(byte[] data, int index)
+        private bool ProcessNextBlock()
         {
-            switch (data[0])
+            if (_blocksIndex == _dataBlocks.Length)
+                return false;
+
+            long oldPos = _memStream.Position;
+            _memStream.Position = _memStream.Length;
+
+            DataBlock block = _dataBlocks[_blocksIndex];
+
+            long startPos = _stream.Position;
+
+            using (NestedStream ns = new NestedStream(_stream, block.CompSize, true))
+            {
+                if (_hasHeader && CASCConfig.ValidateData)
+                {
+                    byte[] blockHash = _md5.ComputeHash(ns);
+
+                    if (!block.Hash.EqualsTo(blockHash))
+                        throw new BLTEDecoderException(0, "MD5 mismatch");
+
+                    ns.Position = 0;
+                }
+
+                HandleDataBlock(ns, _blocksIndex);
+            }
+
+            _stream.Position = startPos + block.CompSize;
+
+            _blocksIndex++;
+
+            _memStream.Position = oldPos;
+
+            return true;
+        }
+
+        private void HandleDataBlock(Stream data, int index)
+        {
+            byte blockType = (byte)data.ReadByte();
+            switch (blockType)
             {
                 case 0x45: // E (encrypted)
-                    (byte[] decryptedData, bool isDecrypted) = Decrypt(data, index);
-                    if (isDecrypted)
-                        HandleDataBlock(decryptedData, index);
+                    Stream decryptedData = Decrypt(data, index);
+                    if (decryptedData != null)
+                        using (decryptedData)
+                            HandleDataBlock(decryptedData, index);
                     else
                         _memStream.Write(new byte[_dataBlocks[index].DecompSize], 0, _dataBlocks[index].DecompSize);
                     break;
                 case 0x46: // F (frame, recursive)
                     throw new BLTEDecoderException(1, "DecoderFrame not implemented");
                 case 0x4E: // N (not compressed)
-                    _memStream.Write(data, 1, data.Length - 1);
+                    data.CopyTo(_memStream);
                     break;
                 case 0x5A: // Z (zlib compressed)
                     Decompress(data, _memStream);
                     break;
                 default:
-                    throw new BLTEDecoderException(1, "unknown BLTE block type {0} (0x{1:X2})!", (char)data[0], data[0]);
+                    throw new BLTEDecoderException(1, $"unknown BLTE block type {(char)blockType} (0x{blockType:X2})!");
             }
         }
 
-        private static (byte[] data, bool isDecrypted) Decrypt(byte[] data, int index)
+        private static Stream Decrypt(Stream data, int index)
         {
-            byte keyNameSize = data[1];
-
-            if (keyNameSize == 0 || keyNameSize != 8)
-                throw new BLTEDecoderException(2, "keyNameSize == 0 || keyNameSize != 8");
-
-            byte[] keyNameBytes = new byte[keyNameSize];
-            Array.Copy(data, 2, keyNameBytes, 0, keyNameSize);
-
-            ulong keyName = BitConverter.ToUInt64(keyNameBytes, 0);
-
-            byte IVSize = data[keyNameSize + 2];
-
-            if (IVSize != 4 || IVSize > 0x10)
-                throw new BLTEDecoderException(2, "IVSize != 4 || IVSize > 0x10");
-
-            byte[] IVpart = new byte[IVSize];
-            Array.Copy(data, keyNameSize + 3, IVpart, 0, IVSize);
-
-            if (data.Length < IVSize + keyNameSize + 4)
-                throw new BLTEDecoderException(2, "data.Length < IVSize + keyNameSize + 4");
-
-            int dataOffset = keyNameSize + IVSize + 3;
-
-            byte encType = data[dataOffset];
-
-            if (encType != ENCRYPTION_SALSA20 && encType != ENCRYPTION_ARC4) // 'S' or 'A'
-                throw new BLTEDecoderException(2, "encType != ENCRYPTION_SALSA20 && encType != ENCRYPTION_ARC4");
-
-            dataOffset++;
-
-            // expand to 8 bytes
-            byte[] IV = new byte[8];
-            Array.Copy(IVpart, IV, IVpart.Length);
-
-            // magic
-            for (int shift = 0, i = 0; i < sizeof(int); shift += 8, i++)
+            using (BinaryReader br = new BinaryReader(data))
             {
-                IV[i] ^= (byte)((index >> shift) & 0xFF);
-            }
+                byte keyNameSize = br.ReadByte();
 
-            byte[] key = KeyService.GetKey(keyName);
+                if (keyNameSize == 0 || keyNameSize != 8)
+                    throw new BLTEDecoderException(2, "keyNameSize == 0 || keyNameSize != 8");
 
-            bool hasKey = key != null;
+                ulong keyName = br.ReadUInt64();
 
-            if (key == null)
-            {
-                key = new byte[16];
-                if (CASCConfig.ThrowOnMissingDecryptionKey && index == 0)
-                    throw new BLTEDecoderException(3, "unknown keyname {0:X16}", keyName);
-                //return null;
-            }
+                byte IVSize = br.ReadByte();
 
-            if (encType == ENCRYPTION_SALSA20)
-            {
-                ICryptoTransform decryptor = KeyService.SalsaInstance.CreateDecryptor(key, IV);
+                if (IVSize != 4 || IVSize > 0x10)
+                    throw new BLTEDecoderException(2, "IVSize != 4 || IVSize > 0x10");
 
-                return (decryptor.TransformFinalBlock(data, dataOffset, data.Length - dataOffset), hasKey);
-            }
-            else
-            {
-                // ARC4 ?
-                throw new BLTEDecoderException(2, "encType ENCRYPTION_ARC4 not implemented");
+                byte[] IV = br.ReadBytes(IVSize);
+                // expand to 8 bytes
+                Array.Resize(ref IV, 8);
+
+                if (data.Length < keyNameSize + IVSize + 4)
+                    throw new BLTEDecoderException(2, "data.Length < IVSize + keyNameSize + 4");
+
+                byte encType = br.ReadByte();
+
+                if (encType != ENCRYPTION_SALSA20 && encType != ENCRYPTION_ARC4) // 'S' or 'A'
+                    throw new BLTEDecoderException(2, "encType != ENCRYPTION_SALSA20 && encType != ENCRYPTION_ARC4");
+
+                // magic
+                for (int shift = 0, i = 0; i < sizeof(int); shift += 8, i++)
+                {
+                    IV[i] ^= (byte)((index >> shift) & 0xFF);
+                }
+
+                byte[] key = KeyService.GetKey(keyName);
+                bool hasKey = key != null;
+
+                if (key == null)
+                {
+                    key = new byte[16];
+                    if (CASCConfig.ThrowOnMissingDecryptionKey && index == 0)
+                        throw new BLTEDecoderException(3, $"unknown keyname {keyName:X16}");
+                    //return null;
+                }
+
+                if (encType == ENCRYPTION_SALSA20)
+                {
+                    using (ICryptoTransform decryptor = KeyService.SalsaInstance.CreateDecryptor(key, IV))
+                    using (CryptoStream cs = new CryptoStream(data, decryptor, CryptoStreamMode.Read))
+                    {
+                        MemoryStream ms = cs.CopyToMemoryStream();
+                        return hasKey ? ms : null;
+                    }
+                }
+                else
+                {
+                    // ARC4 ?
+                    throw new BLTEDecoderException(2, "encType ENCRYPTION_ARC4 not implemented");
+                }
             }
         }
 
-        private static void Decompress(byte[] data, Stream outStream)
+        private static void Decompress(Stream data, Stream outStream)
         {
-            // skip first 3 bytes (zlib)
-            using (var ms = new MemoryStream(data, 3, data.Length - 3))
-            using (var dfltStream = new DeflateStream(ms, CompressionMode.Decompress))
+#if NET6_0_OR_GREATER
+            using (var zlibStream = new ZLibStream(data, CompressionMode.Decompress))
+            {
+                zlibStream.CopyTo(outStream);
+            }
+#else
+            // skip first 2 bytes (zlib)
+            data.Position += 2;
+            using (var dfltStream = new DeflateStream(data, CompressionMode.Decompress))
             {
                 dfltStream.CopyTo(outStream);
             }
+#endif
         }
 
         public override void Flush()
@@ -277,41 +316,6 @@ namespace CASCLib
             {
                 return _memStream.Read(buffer, offset, count);
             }
-        }
-
-        private bool ProcessNextBlock()
-        {
-            try
-            {
-                if (_blocksIndex == _dataBlocks.Length)
-                    return false;
-
-                long oldPos = _memStream.Position;
-                _memStream.Position = _memStream.Length;
-
-                DataBlock block = _dataBlocks[_blocksIndex];
-
-                block.Data = _reader.ReadBytes(block.CompSize);
-
-                if (!block.Hash.IsZeroed() && CASCConfig.ValidateData)
-                {
-                    byte[] blockHash = _md5.ComputeHash(block.Data);
-
-                    // if (!block.Hash.EqualsTo(blockHash))
-                    //     throw new BLTEDecoderException(0, "MD5 mismatch");
-                }
-
-                HandleDataBlock(block.Data, _blocksIndex);
-                _blocksIndex++;
-
-                _memStream.Position = oldPos;
-            }
-            catch(Exception ex)
-            {
-                throw new BLTEDecoderException(0, ex.Message);
-            }
-
-            return true;
         }
 
         public override long Seek(long offset, SeekOrigin origin)
@@ -346,12 +350,9 @@ namespace CASCLib
         {
             try
             {
-                if (disposing)
-                {
-                    _stream?.Dispose();
-                    _reader?.Dispose();
-                    _memStream?.Dispose();
-                }
+                _stream?.Dispose();
+                _reader?.Dispose();
+                _memStream?.Dispose();
             }
             finally
             {

@@ -14,23 +14,29 @@ namespace CASCLib
 
     public class CASCFolder : ICASCEntry
     {
-        private string _name;
-
-        public Dictionary<string, ICASCEntry> Entries { get; set; }
+        public Dictionary<string, CASCFile> Files { get; set; }
+        public Dictionary<string, CASCFolder> Folders { get; set; }
 
         public CASCFolder(string name)
         {
-            Entries = new Dictionary<string, ICASCEntry>(StringComparer.OrdinalIgnoreCase);
-            _name = name;
+            Files = new Dictionary<string, CASCFile>(StringComparer.OrdinalIgnoreCase);
+            Folders = new Dictionary<string, CASCFolder>(StringComparer.OrdinalIgnoreCase);
+            Name = name;
         }
 
-        public string Name => _name;
+        public string Name { get; private set; }
 
         public ulong Hash => 0;
 
-        public ICASCEntry GetEntry(string name)
+        public CASCFile GetFile(string name)
         {
-            Entries.TryGetValue(name, out ICASCEntry entry);
+            Files.TryGetValue(name, out CASCFile entry);
+            return entry;
+        }
+
+        public CASCFolder GetFolder(string name)
+        {
+            Folders.TryGetValue(name, out CASCFolder entry);
             return entry;
         }
 
@@ -50,7 +56,11 @@ namespace CASCLib
                     {
                         var folder = entry as CASCFolder;
 
-                        foreach (var file in GetFiles(folder.Entries.Select(kv => kv.Value)))
+                        foreach (var file in GetFiles(folder.Files.Select(kv => kv.Value)))
+                        {
+                            yield return file;
+                        }
+                        foreach (var file in GetFiles(folder.Folders.Select(kv => kv.Value)))
                         {
                             yield return file;
                         }
@@ -96,7 +106,7 @@ namespace CASCLib
 
         public ulong Hash { get; private set; }
 
-        public long GetSize(CASCHandler casc) => casc.GetEncodingEntry(Hash, out EncodingEntry enc) ? enc.Size : 0;
+        public long GetSize(CASCHandler casc) => casc.GetFileSize(Hash);
 
         public int CompareTo(ICASCEntry other, int col, CASCHandler casc)
         {

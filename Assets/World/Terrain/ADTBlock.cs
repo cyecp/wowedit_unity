@@ -14,7 +14,7 @@ namespace Assets.World.Terrain
         public bool reCheck;
         Camera cameraMain;
         public Vector2 coords;
-        public uint FileDataId;
+        public int FileDataId;
 
         private void Start()
         {

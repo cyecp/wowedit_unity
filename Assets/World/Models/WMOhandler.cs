@@ -21,18 +21,18 @@ namespace Assets.World.Models
         public Material missingMaterial;
         public Material[] WMOmaterials; // 0 - diffuse, 1 - Specular, 2 - Metal, 3 - Environment Mapped, 4 - Opaque
 
-        private uint currentWMOFileDataId;
+        private int currentWMOFileDataId;
         private int currentWMOuniqueID;
         private Vector3 currentWMOposition;
         private Quaternion currentWMOrotation;
         private Vector3 currentWMOscale;
-        private Dictionary<uint, Texture2D> LoadedWMOTextures = new Dictionary<uint, Texture2D>();
+        private Dictionary<int, Texture2D> LoadedWMOTextures = new Dictionary<int, Texture2D>();
         private List<WMOQueueItem> WMOClones = new List<WMOQueueItem>();
         private CASCHandler CascHandler;
 
         public class WMOQueueItem
         {
-            public uint FileDataId;
+            public int FileDataId;
             public int uniqueID;
             public Vector3 Position;
             public Quaternion Rotation;
@@ -45,7 +45,7 @@ namespace Assets.World.Models
             WMOThreadQueue = new Queue<WMOQueueItem>();
         }
 
-        public void AddToQueue(uint FileDataId, int uniqueID, Vector3 position, Quaternion rotation, Vector3 scale, CASCHandler Handler)
+        public void AddToQueue(int FileDataId, int uniqueID, Vector3 position, Quaternion rotation, Vector3 scale, CASCHandler Handler)
         {
             CascHandler = Handler;
             WMOQueueItem item = new WMOQueueItem();
@@ -57,7 +57,7 @@ namespace Assets.World.Models
             WMOThreadQueue.Enqueue(item);
         }
 
-        public void WMOThreadRun(uint FileDataId, int uniqueID, Vector3 position, Quaternion rotation, Vector3 scale)
+        public void WMOThreadRun(int FileDataId, int uniqueID, Vector3 position, Quaternion rotation, Vector3 scale)
         {
             currentWMOFileDataId = FileDataId;
             currentWMOuniqueID = uniqueID;
@@ -81,7 +81,7 @@ namespace Assets.World.Models
         }
 
         // Add WMO copies to a list so they will be copied after loading is done //
-        public void CloneWMO(uint FileDataId, int uniqueID, Vector3 position, Quaternion rotation, Vector3 scale)
+        public void CloneWMO(int FileDataId, int uniqueID, Vector3 position, Quaternion rotation, Vector3 scale)
         {
             WMOQueueItem item = new WMOQueueItem();
             item.FileDataId = FileDataId;
@@ -253,7 +253,7 @@ namespace Assets.World.Models
                         ////////////////////////////////
                         #region material
 
-                        uint TextureFileDataId = data.texturePaths[data.materials[data.groupsData[g].batchMaterialIDs[bn]].TextureId1];
+                        int TextureFileDataId = data.texturePaths[data.materials[data.groupsData[g].batchMaterialIDs[bn]].TextureId1];
                         BatchInstance.GetComponent<Renderer>().material = WMOmaterials[(int)data.materials[data.groupsData[g].batchMaterialIDs[bn]].ShaderType];
 
                         ////////////////////////////////

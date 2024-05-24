@@ -9,7 +9,7 @@ public static class MinimapThread
 {
     public static bool ResetParentSize = false;
     public static bool ThreadAlive = false;
-    public static uint currentWdtFileDataId;
+    public static int currentWdtFileDataId;
     public static bool WMOOnlyZone = false;
     public static bool checkWMOonly = false;
     public static CASCHandler CascHandler;
@@ -26,7 +26,7 @@ public static class MinimapThread
     }
 
     // Build an array of available minimaps and maps //
-    public static void CompileMapList(uint WdtFileDataId, CASCHandler Handler = null)
+    public static void CompileMapList(int WdtFileDataId, CASCHandler Handler = null)
     {
         if (Handler != null)
             CascHandler = Handler;
@@ -102,7 +102,7 @@ public static class MinimapThread
     // Request a minimap image from the parser //
     private static void RequestBlock(Minimap.MinimapRequest minimapRequest)
     {
-        uint fileDataId = minimapRequest.fileDataId;
+        int fileDataId = minimapRequest.fileDataId;
         using (Stream stream = CascHandler.OpenFile(fileDataId))
         {
             BLP blp                    = new BLP();
@@ -120,7 +120,7 @@ public static class MinimapThread
 
     private static void EnqueueEmptyBlock(Minimap.MinimapRequest minimapRequest)
     {
-        uint fileDataId             = minimapRequest.fileDataId;
+        int fileDataId             = minimapRequest.fileDataId;
         MinimapData.MinimapBlockData blockData = new MinimapData.MinimapBlockData();
         blockData.fileDataId        = fileDataId;
         blockData.coords            = minimapRequest.coords;

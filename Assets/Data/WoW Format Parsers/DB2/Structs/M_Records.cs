@@ -1,13 +1,25 @@
-﻿using System;
+﻿using Assets.Const;
+using Assets.Tools;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using UnityEngine;
-using static Assets.Const.SharedConst;
 
 public partial class DB2
 {
+
+    public enum MapTypes : byte
+    {
+        Common = 0,
+        Instance = 1,
+        Raid = 2,
+        Battleground = 3,
+        Arena = 4,
+        Scenario = 5
+    }
+
     public sealed class MapRecord
     {
         public uint Id;
@@ -22,17 +34,18 @@ public partial class DB2
         public byte InstanceType;
         public byte ExpansionID;
         public ushort AreaTableID;
-        public ushort LoadingScreenID;
-        public ushort TimeOfDayOverride;
-        public ushort ParentMapID;
-        public ushort CosmeticParentMapID;
+        public short LoadingScreenID;
+        public short TimeOfDayOverride;
+        public short ParentMapID;
+        public short CosmeticParentMapID;
         public byte TimeOffset;
         public float MinimapIconScale;
-        public ushort CorpseMapID;                                              // map_id of entrance map in ghost mode (continent always and in most cases = normal entrance)
+        public short CorpseMapID;                                              // map_id of entrance map in ghost mode (continent always and in most cases = normal entrance)
         public byte MaxPlayers;
-        public ushort WindSettingsID;
-        public uint ZmpFileDataID;
-        public uint WdtFileDataID;
-        public uint[] Flags = new uint[2];
+        public short WindSettingsID;
+        public int ZmpFileDataID;
+        public int WdtFileDataID;
+        public int NavigationMaxDistance;
+        public uint[] Flags = new uint[3];
     }
 }

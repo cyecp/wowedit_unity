@@ -18,11 +18,11 @@ public static partial class M2
     public static bool ThreadWorking;
     public static GroupData groupDataBuffer;
     public static List<string> LoadedBLPs = new List<string>();
-    public static List<uint> LoadedBLPFileDataIds = new List<uint>();
-    public static List<uint> SkinFiles = new List<uint>();
+    public static List<int> LoadedBLPFileDataIds = new List<int>();
+    public static List<int> SkinFiles = new List<int>();
     public static DataLocalHandler Local = new DataLocalHandler();
 
-    public static void Load(uint FileDataId, int uniqueID, Vector3 position, Quaternion rotation, Vector3 scale, CASCHandler Handler)
+    public static void Load(int FileDataId, int uniqueID, Vector3 position, Quaternion rotation, Vector3 scale, CASCHandler Handler)
     {
         M2Data m2Data = new M2Data();
         M2Texture m2Tex = new M2Texture();
@@ -37,7 +37,7 @@ public static partial class M2
 
         ParseM2_Root(FileDataId, m2Data, m2Tex, Handler);
 
-        foreach (uint skinFile in SkinFiles)
+        foreach (int skinFile in SkinFiles)
             ParseM2_Skin(skinFile, m2Data, Handler);
 
         AllM2Data.Enqueue(m2Data);
@@ -45,7 +45,7 @@ public static partial class M2
         ThreadWorking = false;
 
     }
-    private static void ParseM2_Root(uint fileDataID, M2Data m2Data, M2Texture m2Tex, CASCHandler CascHandler)
+    private static void ParseM2_Root(int fileDataID, M2Data m2Data, M2Texture m2Tex, CASCHandler CascHandler)
     {
         long streamPos = 0;
 
@@ -79,7 +79,7 @@ public static partial class M2
         };
     }
 
-    private static void ParseM2_Skin(uint skinFileId, M2Data m2Data, CASCHandler CascHandler)
+    private static void ParseM2_Skin(int skinFileId, M2Data m2Data, CASCHandler CascHandler)
     {
         var stream = CascHandler.OpenFile(skinFileId);
         using (BinaryReader reader = new BinaryReader(stream))

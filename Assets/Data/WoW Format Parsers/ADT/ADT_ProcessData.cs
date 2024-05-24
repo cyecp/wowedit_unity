@@ -214,8 +214,8 @@ namespace Assets.Data.WoW_Format_Parsers.ADT
         {
             if (ADTTexData.textureBlockData.MTXP)
             {
-                ADTTexData.textureBlockData.terrainHTextures = new Dictionary<uint, ADTTexData.Texture2Ddata>();
-                foreach (uint TextureFileDataId in ADTTexData.textureBlockData.terrainTextureFileDataIds)
+                ADTTexData.textureBlockData.terrainHTextures = new Dictionary<int, ADTTexData.Texture2Ddata>();
+                foreach (int TextureFileDataId in ADTTexData.textureBlockData.terrainTextureFileDataIds)
                 {
                     using (var stream = Handler.OpenFile(TextureFileDataId))
                     {

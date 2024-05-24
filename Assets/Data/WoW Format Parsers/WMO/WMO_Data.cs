@@ -14,7 +14,7 @@ namespace Assets.Data.WoW_Format_Parsers.WMO
         public struct WMOStruct
         {
             // object //
-            public uint fileDataId;
+            public int fileDataId;
             public string dataPath;
             public int uniqueID;
             public Vector3 position;
@@ -23,8 +23,8 @@ namespace Assets.Data.WoW_Format_Parsers.WMO
 
             // root //
             public HeaderData Info;
-            public Dictionary<uint, uint> texturePaths; // offset -> dataPath
-            public Dictionary<uint, Texture2Ddata> textureData; // dataPath -> Texture2Ddata
+            public Dictionary<int, int> texturePaths; // offset -> dataPath
+            public Dictionary<int, Texture2Ddata> textureData; // dataPath -> Texture2Ddata
             public Dictionary<int, string> MOGNgroupnames; // offset -> name
             public List<WMOMaterial> materials;
 
@@ -38,13 +38,13 @@ namespace Assets.Data.WoW_Format_Parsers.WMO
         public MaterialFlags flags;
         public WMOFragmentShader ShaderType;
         public BlendingMode BlendMode;
-        public uint TextureId1;
+        public int TextureId1;
         public BGRA SidnColor;
         public BGRA FrameSidnColor;
-        public uint TextureId2;
+        public int TextureId2;
         public BGRA DiffColor;
         public uint GroundType;
-        public uint TextureId3;
+        public int TextureId3;
         public BGRA Color;
         public MaterialFlags texture3_flags;
     }

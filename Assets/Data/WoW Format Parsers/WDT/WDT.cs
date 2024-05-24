@@ -16,7 +16,7 @@ public static partial class WDT
     public static CASCHandler CASC;
     public static DataLocalHandler Local = new DataLocalHandler();
 
-    public static bool ParseWDT(uint FileDataId)
+    public static bool ParseWDT(int FileDataId)
     {
         long streamPos = 0;
         CASC = GameObject.Find("[CASC]").GetComponent<CascHandler>().cascHandler;

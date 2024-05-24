@@ -1,8 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.IO.MemoryMappedFiles;
 using System.Text;
-using UnityEngine;
 
 namespace CASCLib
 {
@@ -10,96 +10,150 @@ namespace CASCLib
     {
         protected LocalIndexHandler LocalIndex;
         protected CDNIndexHandler CDNIndex;
+        protected FileIndexHandler FileIndex;
 
         protected static readonly Jenkins96 Hasher = new Jenkins96();
 
-        protected readonly Dictionary<int, Stream> DataStreams = new Dictionary<int, Stream>();
+        protected readonly Dictionary<int, MemoryMappedFile> DataStreams = new Dictionary<int, MemoryMappedFile>();
+
+        private static readonly object DataStreamLock = new object();
 
         public CASCConfig Config { get; protected set; }
 
-        public CASCHandlerBase(CASCConfig config)
+        public CASCHandlerBase(CASCConfig config, BackgroundWorkerEx worker)
         {
             Config = config;
 
-            Debug.Log("CASCHandlerBase: Initializing Index Handler...");
-            CDNIndex = CDNIndexHandler.Initialize(config);
+            Logger.WriteLine("CASCHandlerBase: loading CDN indices...");
+
+            using (var _ = new PerfCounter("CDNIndexHandler.Initialize()"))
+            {
+                CDNIndex = CDNIndexHandler.Initialize(config, worker);
+            }
+
+            if ((CASCConfig.LoadFlags & LoadFlags.FileIndex) != 0)
+            {
+                using (var _ = new PerfCounter("FileIndexHandler()"))
+                {
+                    FileIndex = new FileIndexHandler(config);
+                }
+            }
+
+            Logger.WriteLine("CASCHandlerBase: loaded {0} CDN indexes", CDNIndex.Count);
 
             if (!config.OnlineMode)
             {
                 CDNCache.Enabled = false;
-                Debug.Log("CASCHandlerBase: Initializing Local Index Handler...");
-                LocalIndex = LocalIndexHandler.Initialize(config);
+
+                Logger.WriteLine("CASCHandlerBase: loading local indices...");
+
+                using (var _ = new PerfCounter("LocalIndexHandler.Initialize()"))
+                {
+                    LocalIndex = LocalIndexHandler.Initialize(config, worker);
+                }
+
+                Logger.WriteLine("CASCHandlerBase: loaded {0} local indexes", LocalIndex.Count);
             }
         }
 
-        public abstract bool FileExists(uint fileDataId);
+        public abstract bool FileExists(int fileDataId);
         public abstract bool FileExists(string file);
         public abstract bool FileExists(ulong hash);
 
-        public abstract Stream OpenFile(uint filedata);
+        public abstract Stream OpenFile(int filedata);
         public abstract Stream OpenFile(string name);
         public abstract Stream OpenFile(ulong hash);
 
-        public Stream OpenFile(MD5Hash key)
+        public void SaveFileTo(string fullName, string extractPath) => SaveFileTo(Hasher.ComputeHash(fullName), extractPath, fullName);
+        public void SaveFileTo(int fileDataId, string fullName, string extractPath) => SaveFileTo(FileDataHash.ComputeHash(fileDataId), extractPath, fullName);
+        public abstract void SaveFileTo(ulong hash, string extractPath, string fullName);
+
+        public Stream OpenFile(in MD5Hash eKey)
         {
+            MD5Hash tempEKey = eKey;
+            if (FileIndex != null && FileIndex.GetFullEKey(eKey, out var fullEKey) == true)
+                tempEKey = fullEKey;
+
             try
             {
                 if (Config.OnlineMode)
-                    return OpenFileOnline(key);
+                    return OpenFileOnline(tempEKey);
                 else
-                    return OpenFileLocal(key);
+                    return OpenFileLocal(tempEKey);
             }
             catch (BLTEDecoderException exc) when (exc.ErrorCode == 3)
             {
                 if (CASCConfig.ThrowOnMissingDecryptionKey)
-                    throw exc;
+                    throw;
                 return null;
             }
             catch// (Exception exc) when (!(exc is BLTEDecoderException))
             {
-                return OpenFileOnline(key);
+                return OpenFileOnline(tempEKey);
             }
         }
 
-        protected abstract Stream OpenFileOnline(MD5Hash key);
-
-        protected Stream OpenFileOnlineInternal(IndexEntry idxInfo, MD5Hash key)
+        protected Stream OpenFileOnline(in MD5Hash eKey)
         {
+            IndexEntry idxInfo = CDNIndex.GetIndexInfo(eKey);
+            return OpenFileOnlineInternal(idxInfo, eKey);
+        }
+
+        protected Stream OpenFileOnlineInternal(IndexEntry idxInfo, in MD5Hash eKey)
+        {
+            Stream s;
+
             if (idxInfo != null)
-            {
-                Stream s = CDNIndex.OpenDataFile(idxInfo);
-                return new BLTEStream(s, key);
-            }
+                s = CDNIndex.OpenDataFile(idxInfo);
             else
+                s = CDNIndex.OpenDataFileDirect(eKey);
+
+            BLTEStream blte;
+
+            try
             {
-                Stream s = CDNIndex.OpenDataFileDirect(key);
-                return new BLTEStream(s, key);
-}
+                blte = new BLTEStream(s, eKey);
+            }
+            catch (BLTEDecoderException exc) when (exc.ErrorCode == 0)
+            {
+                CDNCache.Instance.InvalidateFile(idxInfo != null ? Config.Archives[idxInfo.Index] : eKey.ToHexString());
+                return OpenFileOnlineInternal(idxInfo, eKey);
+            }
+
+            return blte;
         }
 
-        private Stream OpenFileLocal(MD5Hash key)
+        private Stream OpenFileLocal(in MD5Hash eKey)
         {
-            Stream stream = GetLocalDataStream(key);
+            Stream stream = GetLocalDataStream(eKey);
 
-            return new BLTEStream(stream, key);
+            return new BLTEStream(stream, eKey);
         }
 
-        protected abstract Stream GetLocalDataStream(MD5Hash key);
+        protected Stream GetLocalDataStream(in MD5Hash eKey)
+        {
+            IndexEntry idxInfo = LocalIndex.GetIndexInfo(eKey);
+            return GetLocalDataStreamInternal(idxInfo, eKey);
+        }
 
-        protected Stream GetLocalDataStreamInternal(IndexEntry idxInfo, MD5Hash key)
+        protected Stream GetLocalDataStreamInternal(IndexEntry idxInfo, in MD5Hash eKey)
         {
             if (idxInfo == null)
-                throw new Exception("local index missing");
+            {
+                string message = $"Local index missing: {eKey.ToHexString()}";
+                Logger.WriteLine(message);
+                throw new Exception(message);
+            }
 
-            Stream dataStream = GetDataStream(idxInfo.Index);
-            dataStream.Position = idxInfo.Offset;
+            MemoryMappedFile dataFile = GetDataStream(idxInfo.Index);
 
-            using (BinaryReader reader = new BinaryReader(dataStream, Encoding.ASCII, true))
+            var accessor = dataFile.CreateViewStream(idxInfo.Offset, idxInfo.Size, MemoryMappedFileAccess.Read);
+            using (BinaryReader reader = new BinaryReader(accessor, Encoding.ASCII, true))
             {
                 byte[] md5 = reader.ReadBytes(16);
                 Array.Reverse(md5);
 
-                if (!key.EqualsTo9(md5))
+                if (!eKey.EqualsTo9(md5))
                     throw new Exception("local data corrupted");
 
                 int size = reader.ReadInt32();
@@ -108,53 +162,64 @@ namespace CASCLib
                     throw new Exception("local data corrupted");
 
                 //byte[] unkData1 = reader.ReadBytes(2);
-                //byte[] unkData2 = reader.ReadBytes(8);
-                dataStream.Position += 10;
+                //int unkData2 = reader.ReadInt32();
+                //int unkData3 = reader.ReadInt32();
+                accessor.Position += 10;
 
-                byte[] data = reader.ReadBytes(idxInfo.Size - 30);
+                //byte[] data = reader.ReadBytes(idxInfo.Size - 30);
 
-                return new MemoryStream(data);
+                //return new MemoryStream(data);
+                return new NestedStream(accessor, idxInfo.Size - 30);
             }
         }
 
-        public void SaveFileTo(MD5Hash key, string path, string name)
+        public void SaveFileTo(in MD5Hash eKey, string path, string name)
         {
+            MD5Hash tempEKey = eKey;
+            if (FileIndex != null && FileIndex.GetFullEKey(eKey, out var fullEKey) == true)
+                tempEKey = fullEKey;
+
             try
             {
                 if (Config.OnlineMode)
-                    ExtractFileOnline(key, path, name);
+                    ExtractFileOnline(tempEKey, path, name);
                 else
-                    ExtractFileLocal(key, path, name);
+                    ExtractFileLocal(tempEKey, path, name);
             }
             catch
             {
-                ExtractFileOnline(key, path, name);
+                if (Config.OnlineMode || CASCConfig.UseOnlineFallbackForMissingFiles)
+                    ExtractFileOnline(tempEKey, path, name);
             }
         }
 
-        protected abstract void ExtractFileOnline(MD5Hash key, string path, string name);
+        protected void ExtractFileOnline(in MD5Hash eKey, string path, string name)
+        {
+            IndexEntry idxInfo = CDNIndex.GetIndexInfo(eKey);
+            ExtractFileOnlineInternal(idxInfo, eKey, path, name);
+        }
 
-        protected void ExtractFileOnlineInternal(IndexEntry idxInfo, MD5Hash key, string path, string name)
+        protected void ExtractFileOnlineInternal(IndexEntry idxInfo, in MD5Hash eKey, string path, string name)
         {
             if (idxInfo != null)
             {
                 using (Stream s = CDNIndex.OpenDataFile(idxInfo))
-                using (BLTEStream blte = new BLTEStream(s, key))
+                using (BLTEStream blte = new BLTEStream(s, eKey))
                 {
                     blte.ExtractToFile(path, name);
                 }
             }
             else
             {
-                using (Stream s = CDNIndex.OpenDataFileDirect(key))
-                using (BLTEStream blte = new BLTEStream(s, key))
+                using (Stream s = CDNIndex.OpenDataFileDirect(eKey))
+                using (BLTEStream blte = new BLTEStream(s, eKey))
                 {
                     blte.ExtractToFile(path, name);
                 }
             }
         }
 
-        private void ExtractFileLocal(MD5Hash key, string path, string name)
+        private void ExtractFileLocal(in MD5Hash key, string path, string name)
         {
             Stream stream = GetLocalDataStream(key);
 
@@ -166,55 +231,59 @@ namespace CASCLib
 
         protected static BinaryReader OpenInstallFile(EncodingHandler enc, CASCHandlerBase casc)
         {
-            if (!enc.GetEntry(casc.Config.InstallMD5, out EncodingEntry encInfo))
+            if (!enc.GetEntry(casc.Config.InstallCKey, out EncodingEntry encInfo))
                 throw new FileNotFoundException("encoding info for install file missing!");
 
             //ExtractFile(encInfo.Key, ".", "install");
 
-            return new BinaryReader(casc.OpenFile(encInfo.Key));
+            return new BinaryReader(casc.OpenFile(encInfo.Keys[0]));
         }
 
-        protected BinaryReader OpenDownloadFile(EncodingHandler enc, CASCHandlerBase casc)
+        protected static BinaryReader OpenDownloadFile(EncodingHandler enc, CASCHandlerBase casc)
         {
-            if (!enc.GetEntry(casc.Config.DownloadMD5, out EncodingEntry encInfo))
+            if (!enc.GetEntry(casc.Config.DownloadCKey, out EncodingEntry encInfo))
                 throw new FileNotFoundException("encoding info for download file missing!");
 
             //ExtractFile(encInfo.Key, ".", "download");
 
-            return new BinaryReader(casc.OpenFile(encInfo.Key));
+            return new BinaryReader(casc.OpenFile(encInfo.Keys[0]));
         }
 
-        protected BinaryReader OpenRootFile(EncodingHandler enc, CASCHandlerBase casc)
+        protected static BinaryReader OpenRootFile(EncodingHandler enc, CASCHandlerBase casc)
         {
-            if (!enc.GetEntry(casc.Config.RootMD5, out EncodingEntry encInfo))
+            if (!enc.GetEntry(casc.Config.RootCKey, out EncodingEntry encInfo))
                 throw new FileNotFoundException("encoding info for root file missing!");
 
             //ExtractFile(encInfo.Key, ".", "root");
 
-            return new BinaryReader(casc.OpenFile(encInfo.Key));
+            return new BinaryReader(casc.OpenFile(encInfo.Keys[0]));
         }
 
-        protected BinaryReader OpenEncodingFile(CASCHandlerBase casc)
+        protected static BinaryReader OpenEncodingFile(CASCHandlerBase casc)
         {
             //ExtractFile(Config.EncodingKey, ".", "encoding");
 
-            return new BinaryReader(casc.OpenFile(casc.Config.EncodingKey));
+            return new BinaryReader(casc.OpenFile(casc.Config.EncodingEKey));
         }
 
-        private Stream GetDataStream(int index)
+        private MemoryMappedFile GetDataStream(int index)
         {
-            if (DataStreams.TryGetValue(index, out Stream stream))
+            lock (DataStreamLock)
+            {
+                if (DataStreams.TryGetValue(index, out MemoryMappedFile stream))
+                    return stream;
+
+                string dataFolder = CASCGame.GetDataFolder(Config.GameType);
+
+                string dataFile = Path.Combine(Config.BasePath, dataFolder, "data", string.Format("data.{0:D3}", index));
+
+                FileStream fs = new FileStream(dataFile, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+                stream = MemoryMappedFile.CreateFromFile(fs, null, 0, MemoryMappedFileAccess.Read, HandleInheritability.None, false);
+
+                DataStreams[index] = stream;
+
                 return stream;
-
-            string dataFolder = CASCGame.GetDataFolder(Config.GameType);
-
-            string dataFile = Path.Combine(Config.BasePath, dataFolder, "data", string.Format("data.{0:D3}", index));
-
-            stream = new FileStream(dataFile, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
-
-            DataStreams[index] = stream;
-
-            return stream;
+            }
         }
     }
 }

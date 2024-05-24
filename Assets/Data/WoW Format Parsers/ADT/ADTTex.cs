@@ -21,7 +21,7 @@ namespace Assets.Data.WoW_Format_Parsers.ADT
             int texture_size = reader.ReadInt32(); // either defined here or in MHDR.mamp_value.
         }
 
-        public void ReadMCNKtex(BinaryReader reader, uint WdtFileDataId, int MCNKchunkNumber, uint MCNKsize)
+        public void ReadMCNKtex(BinaryReader reader, int WdtFileDataId, int MCNKchunkNumber, uint MCNKsize)
         {
             if (reader.BaseStream.Length == reader.BaseStream.Position)
                 return;
@@ -158,7 +158,7 @@ namespace Assets.Data.WoW_Format_Parsers.ADT
 
             for (int tex = 0; tex < numTextures; tex++)
             {
-                uint DataId = br.ReadUInt32();
+                int DataId = br.ReadInt32();
                 if (DataId != 0)
                 {
                     // Checking if the filename exists in the TexturePaths.
@@ -196,7 +196,7 @@ namespace Assets.Data.WoW_Format_Parsers.ADT
 
             for (int tex = 0; tex < numTextures; tex++)
             {
-                uint DataId     = br.ReadUInt32();
+                int DataId     = br.ReadInt32();
                 if (DataId != 0)
                 {
                     // Checking if the filename exists in the TexturePaths.
@@ -229,7 +229,7 @@ namespace Assets.Data.WoW_Format_Parsers.ADT
             //ADTTexData.textureBlockData.MTXP = true;
         }
 
-        public void ReadMCAL(BinaryReader ADTtexstream, uint WdtFileDataId, ADTTexData.TextureChunkData chunkData)
+        public void ReadMCAL(BinaryReader ADTtexstream, int WdtFileDataId, ADTTexData.TextureChunkData chunkData)
         {
             long McalStartPosition  = ADTtexstream.BaseStream.Position;
             uint numberofLayers     = chunkData.NumberOfTextureLayers;

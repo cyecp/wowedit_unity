@@ -27,7 +27,7 @@ public class DataSourceManager : MonoBehaviour
 
     private LocaleFlags firstInstalledLocale = LocaleFlags.enUS;
     public string _gameType;
-    public CascHandler Casc = new CascHandler();
+    public CascHandler Casc;
 
     public void Initialize ()
     {
@@ -172,7 +172,7 @@ public class DataSourceManager : MonoBehaviour
 
     public bool CheckValidWoWPath (string path)
     {
-        if (File.Exists($@"{path}\\_retail_\\Wow.exe") || File.Exists($@"{path}\\_beta_\\WowB.exe") || File.Exists($@"{path}\\_ptr_\\WowT.exe") || File.Exists($@"{path}\\_retail_\\Wow.exe"))
+        if (File.Exists($@"{path}\\_retail_\\Wow.exe") || File.Exists($@"{path}\\_beta_\\WowB.exe") || File.Exists($@"{path}\\_ptr_\\WowT.exe") || File.Exists($@"{path}\\_classic_\\WowClassic.exe"))
             return true;
         else
             return false;

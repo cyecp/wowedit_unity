@@ -20,27 +20,27 @@ namespace Assets.World.Models
         public Material defaultMaterial;
 
         private string currentM2datapath;
-        private uint currentM2FileDataId;
+        private int currentM2FileDataId;
         private int currentM2uniqueID;
         private Vector3 currentM2position;
         private Quaternion currentM2rotation;
         private Vector3 currentM2scale;
         private Dictionary<string, Texture2D> LoadedM2Textures      = new Dictionary<string, Texture2D>();
-        private Dictionary<uint, Texture2D> LoadedM2TextureIds    = new Dictionary<uint, Texture2D>();
+        private Dictionary<int, Texture2D> LoadedM2TextureIds    = new Dictionary<int, Texture2D>();
         private List<M2QueueItem> M2Clones = new List<M2QueueItem>();
         public CASCHandler CascHandler;
 
         public class M2QueueItem
         {
             public string objectDataPath;
-            public uint FileDataId;
+            public int FileDataId;
             public int uniqueID;
             public Vector3 Position;
             public Quaternion Rotation;
             public Vector3 Scale;
         }
 
-        public void AddToQueue(uint fileDataId, int uniqueID, Vector3 position, Quaternion rotation, Vector3 scale, CASCHandler Handler)
+        public void AddToQueue(int fileDataId, int uniqueID, Vector3 position, Quaternion rotation, Vector3 scale, CASCHandler Handler)
         {
             CascHandler = Handler;
             M2QueueItem item = new M2QueueItem();
@@ -52,7 +52,7 @@ namespace Assets.World.Models
             M2ThreadQueue.Enqueue(item);
         }
 
-        public void M2ThreadRun(uint fileDataId, int uniqueID, Vector3 position, Quaternion rotation, Vector3 scale)
+        public void M2ThreadRun(int fileDataId, int uniqueID, Vector3 position, Quaternion rotation, Vector3 scale)
         {
             currentM2FileDataId = fileDataId;
             currentM2uniqueID   = uniqueID;
@@ -134,7 +134,7 @@ namespace Assets.World.Models
             }
         }
 
-        public void CloneM2(uint FileDataId, int uniqueID, Vector3 position, Quaternion rotation, Vector3 scale)
+        public void CloneM2(int FileDataId, int uniqueID, Vector3 position, Quaternion rotation, Vector3 scale)
         {
             M2QueueItem item = new M2QueueItem();
             item.FileDataId = FileDataId;
@@ -296,7 +296,7 @@ namespace Assets.World.Models
             // Textures //
             for (var tex = 0; tex < data.submeshData.Count; tex++)
             {
-                uint FDID           = data.m2Tex[data.textureLookupTable[data.m2BatchIndices[data.m2BatchIndices[tex].M2Batch_skinSectionIndex].M2Batch_textureComboIndex]].FileDataId;
+                int FDID           = data.m2Tex[data.textureLookupTable[data.m2BatchIndices[data.m2BatchIndices[tex].M2Batch_skinSectionIndex].M2Batch_textureComboIndex]].FileDataId;
                 Texture2Ddata tdata = data.m2Tex[data.textureLookupTable[data.m2BatchIndices[data.m2BatchIndices[tex].M2Batch_skinSectionIndex].M2Batch_textureComboIndex]].texture2Ddata;
 
                 if (FDID != 0 && tdata.TextureData != null)

@@ -17,16 +17,19 @@ namespace Assets.Data.WoW_Format_Parsers
 
         public class MapTextureBlock
         {
-            public uint FileDataId;
+            public int FileDataId;
             public Vector2 coords;
             public Texture2Ddata data;
         }
 
         public static void Load(Vector2 coords, CASCHandler Handler)
         {
+            int texture = WDT.WDTEntries[((int)coords.x, (int)coords.y)].MapTexture;
+            if (texture == 0)
+                return;
             MapTextureBlock mapTextureBlock = new MapTextureBlock();
             Texture2Ddata texture2Ddata     = new Texture2Ddata();
-            using (Stream stream = Handler.OpenFile(WDT.WDTEntries[((int)coords.x, (int)coords.y)].MapTexture))
+            using (Stream stream = Handler.OpenFile(texture))
             {
                 BLP blp                     = new BLP();
                 byte[] data                 = blp.GetUncompressed(stream, true);
@@ -36,7 +39,7 @@ namespace Assets.Data.WoW_Format_Parsers
                 texture2Ddata.width         = info.width;
                 texture2Ddata.textureFormat = info.textureFormat;
                 texture2Ddata.TextureData   = data;
-                mapTextureBlock.FileDataId  = WDT.WDTEntries[((int)coords.x, (int)coords.y)].MapTexture;
+                mapTextureBlock.FileDataId  = texture;
                 mapTextureBlock.coords      = coords;
                 mapTextureBlock.data        = texture2Ddata;
                 if (ADT.ADT.working)

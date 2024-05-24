@@ -2,13 +2,13 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System;
 
 namespace CASCLib
 {
     public class InstallEntry
     {
         public string Name;
+        public ulong Hash;
         public MD5Hash MD5;
         public int Size;
 
@@ -27,13 +27,12 @@ namespace CASCLib
         private List<InstallEntry> InstallData = new List<InstallEntry>();
         private static readonly Jenkins96 Hasher = new Jenkins96();
 
-        public int Count
-        {
-            get { return InstallData.Count; }
-        }
+        public int Count => InstallData.Count;
 
-        public InstallHandler(BinaryReader stream)
+        public InstallHandler(BinaryReader stream, BackgroundWorkerEx worker)
         {
+            worker?.ReportProgress(0, "Loading \"install\"...");
+
             stream.ReadBytes(2); // IN
 
             byte b1 = stream.ReadByte();
@@ -64,24 +63,38 @@ namespace CASCLib
 
             for (int i = 0; i < numFiles; i++)
             {
+                string name = stream.ReadCString();
                 InstallEntry entry = new InstallEntry()
                 {
-                    Name = stream.ReadCString(),
+                    Name = name,
+                    Hash = Hasher.ComputeHash(name),
                     MD5 = stream.Read<MD5Hash>(),
                     Size = stream.ReadInt32BE()
                 };
                 InstallData.Add(entry);
 
                 entry.Tags = Tags.FindAll(tag => tag.Bits[i]);
+
+                worker?.ReportProgress((int)((i + 1) / (float)numFiles * 100));
             }
         }
 
         public InstallEntry GetEntry(string name)
         {
-            return InstallData.Where(i => i.Name == name).FirstOrDefault();
+            return InstallData.Where(i => i.Name.ToLower() == name.ToLower()).FirstOrDefault();
         }
 
-        public IEnumerable<InstallEntry> GetEntries(string tag)
+        public InstallEntry GetEntry(ulong hash)
+        {
+            return InstallData.Where(i => i.Hash == hash).FirstOrDefault();
+        }
+
+        public IEnumerable<InstallEntry> GetEntriesByName(string name)
+        {
+            return InstallData.Where(i => i.Name.ToLower() == name.ToLower());
+        }
+
+        public IEnumerable<InstallEntry> GetEntriesByTag(string tag)
         {
             foreach (var entry in InstallData)
                 if (entry.Tags.Any(t => t.Name == tag))
@@ -91,7 +104,7 @@ namespace CASCLib
         public IEnumerable<InstallEntry> GetEntries(ulong hash)
         {
             foreach (var entry in InstallData)
-                if (Hasher.ComputeHash(entry.Name) == hash)
+                if (entry.Hash == hash)
                     yield return entry;
         }
 
@@ -99,6 +112,18 @@ namespace CASCLib
         {
             foreach (var entry in InstallData)
                 yield return entry;
+        }
+
+        public void Print()
+        {
+            for (int i = 0; i < InstallData.Count; ++i)
+            {
+                var data = InstallData[i];
+
+                Logger.WriteLine($"{i:D4}: {data.Hash:X16} {data.MD5.ToHexString()} {data.Name}");
+
+                Logger.WriteLine($"    {string.Join(",", data.Tags.Select(t => t.Name))}");
+            }
         }
 
         public void Clear()

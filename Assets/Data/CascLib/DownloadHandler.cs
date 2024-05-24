@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System;
 
 namespace CASCLib
 {
@@ -22,14 +21,15 @@ namespace CASCLib
 
     public class DownloadHandler
     {
-        private static readonly MD5HashComparer comparer = new MD5HashComparer();
-        private Dictionary<MD5Hash, DownloadEntry> DownloadData = new Dictionary<MD5Hash, DownloadEntry>(comparer);
+        private Dictionary<MD5Hash, DownloadEntry> DownloadData = new Dictionary<MD5Hash, DownloadEntry>(MD5HashComparer.Instance);
         private Dictionary<string, DownloadTag> Tags = new Dictionary<string, DownloadTag>();
 
         public int Count => DownloadData.Count;
 
-        public DownloadHandler(BinaryReader stream)
+        public DownloadHandler(BinaryReader stream, BackgroundWorkerEx worker)
         {
+            worker?.ReportProgress(0, "Loading \"download\"...");
+
             stream.Skip(2); // DL
 
             byte b1 = stream.ReadByte();
@@ -53,6 +53,8 @@ namespace CASCLib
                 var entry = new DownloadEntry() { Index = i };
 
                 DownloadData.Add(key, entry);
+
+                worker?.ReportProgress((int)((i + 1) / (float)numFiles * 100));
             }
 
             for (int i = 0; i < numTags; i++)
@@ -78,10 +80,12 @@ namespace CASCLib
             {
                 if (entry.Value.Tags == null)
                     entry.Value.Tags = Tags.Where(kv => kv.Value.Bits[entry.Value.Index]);
+
+                Logger.WriteLine("{0} {1}", entry.Key.ToHexString(), string.Join(",", entry.Value.Tags.Select(tag => tag.Key)));
             }
         }
 
-        public DownloadEntry GetEntry(MD5Hash key)
+        public DownloadEntry GetEntry(in MD5Hash key)
         {
             DownloadData.TryGetValue(key, out DownloadEntry entry);
 

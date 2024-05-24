@@ -18,7 +18,7 @@ namespace Assets.Data.WoW_Format_Parsers.M2
         public class M2Data
         {
             // Object //
-            public uint FileDataId;
+            public int FileDataId;
             public string dataPath;
             public int uniqueID;
             public Vector3 position;
@@ -140,7 +140,7 @@ namespace Assets.Data.WoW_Format_Parsers.M2
         public int flags;
         public M2Array FilenameArray;
         public char[] Filename;
-        public uint FileDataId;
+        public int FileDataId;
         public Texture2Ddata texture2Ddata;
     }
 

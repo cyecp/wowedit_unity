@@ -21,7 +21,7 @@ public class WorldLoader2 : MonoBehaviour
     public GameObject[,] blocks;
     public List<string> activeBlocks;
     public static List<Task> tasks;
-    public uint WdtFileDataId;
+    public int WdtFileDataId;
     public bool[,] existingADTs;
     public bool worldLoaded = false;
 
@@ -102,7 +102,7 @@ public class WorldLoader2 : MonoBehaviour
         ProcessTasks();
     }
 
-    public void LoadWorld(uint WdtFileDataId, Vector2 playerSpawn)
+    public void LoadWorld(int WdtFileDataId, Vector2 playerSpawn)
     {
         ADT.working = true;
         terrainHandler.frameBusy = false;

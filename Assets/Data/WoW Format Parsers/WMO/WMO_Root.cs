@@ -58,15 +58,15 @@ namespace Assets.Data.WoW_Format_Parsers.WMO
                 material.ShaderType         = (WMOFragmentShader)reader.ReadUInt32();   // Index into CMapObj::s_wmoShaderMetaData. See below (shader types).
                 material.BlendMode          = (BlendingMode)reader.ReadUInt32();        // Blending: see https://wowdev.wiki/Rendering#EGxBlend
 
-                material.TextureId1         = reader.ReadUInt32();                      // offset into MOTX; ≥ Battle (8.1.0.27826) No longer references MOTX but is a filedata id directly.
+                material.TextureId1         = reader.ReadInt32();                      // offset into MOTX; ≥ Battle (8.1.0.27826) No longer references MOTX but is a filedata id directly.
                 material.SidnColor          = reader.ReadBGRA();                        // emissive color; see below (emissive color)
                 material.FrameSidnColor     = reader.ReadBGRA();                        // sidn emissive color; set at runtime; gets sidn-manipulated emissive color; see below (emissive color)
-                material.TextureId2         = reader.ReadUInt32();                      // Environment Texture; envNameIndex; offset into MOTX
+                material.TextureId2         = reader.ReadInt32();                      // Environment Texture; envNameIndex; offset into MOTX
                 material.DiffColor          = reader.ReadBGRA();                        // diffuse color; CWorldView::GatherMapObjDefGroupLiquids(): geomFactory->SetDiffuseColor((CImVectorⁱ*)(smo+7));
                                                                                         // environment textures don't need flags
 
                 material.GroundType         = reader.ReadUInt32();                      // foreign_keyⁱ< uint32_t, &TerrainTypeRec::m_ID > ground_type; // according to CMapObjDef::GetGroundType 
-                material.TextureId3         = reader.ReadUInt32();                      // offset into MOTX
+                material.TextureId3         = reader.ReadInt32();                      // offset into MOTX
                 material.Color              = reader.ReadBGRA();
                 material.texture3_flags     = reader.ReadMaterialFlags();
 
@@ -372,11 +372,11 @@ namespace Assets.Data.WoW_Format_Parsers.WMO
         // (Legion+) required when WMO is loaded from fileID (e.g. game objects)
         public static void ReadGFID(BinaryReader reader, int GFIDsize)
         {
-            WMO.WMOGroupIDs = new List<uint>();
+            WMO.WMOGroupIDs = new List<int>();
             int flagCount = GFIDsize / 4;
             for (int i = 0; i < flagCount; ++i)
             {
-                WMO.WMOGroupIDs.Add(reader.ReadUInt32());
+                WMO.WMOGroupIDs.Add(reader.ReadInt32());
             }
         }
     }

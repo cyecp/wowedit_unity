@@ -13,10 +13,10 @@ namespace Assets.Data.WoW_Format_Parsers.WMO
     {
         public static bool ThreadWorking;
         public static GroupData groupDataBuffer;
-        public static List<uint> LoadedBLPs = new List<uint>();
-        public static List<uint> WMOGroupIDs = new List<uint>();
+        public static List<int> LoadedBLPs = new List<int>();
+        public static List<int> WMOGroupIDs = new List<int>();
 
-        public static void Load(uint FileDataId, int uniqueID, Vector3 position, Quaternion rotation, Vector3 scale, CASCHandler Handler)
+        public static void Load(int FileDataId, int uniqueID, Vector3 position, Quaternion rotation, Vector3 scale, CASCHandler Handler)
         {
             wmoData = new WMOStruct();
 
@@ -27,8 +27,8 @@ namespace Assets.Data.WoW_Format_Parsers.WMO
             wmoData.scale = scale;
 
             wmoData.Info = new HeaderData();
-            wmoData.texturePaths = new Dictionary<uint, uint>();
-            wmoData.textureData = new Dictionary<uint, Texture2Ddata>();
+            wmoData.texturePaths = new Dictionary<int, int>();
+            wmoData.textureData = new Dictionary<int, Texture2Ddata>();
             wmoData.MOGNgroupnames = new Dictionary<int, string>();
             wmoData.materials = new List<WMOMaterial>();
 
@@ -42,7 +42,7 @@ namespace Assets.Data.WoW_Format_Parsers.WMO
             ThreadWorking = false;
         }
 
-        private static void ParseWMO_Root(uint FileDataId, CASCHandler CascHandler)
+        private static void ParseWMO_Root(int FileDataId, CASCHandler CascHandler)
         {
             long StreamPos = 0;
             using (var stream = CascHandler.OpenFile(FileDataId))

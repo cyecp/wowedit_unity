@@ -26,7 +26,7 @@ public class DevTools : MonoBehaviour {
     {
         CASCHandler = CASC.GetComponent<CascHandler>().cascHandler;
         //World.ClearAllTerrain();
-        uint WdtFileDataId = 0;
+        int WdtFileDataId = 0;
         Vector2 currentSelectedPlayerSpawn = Vector2.zero;
 
         switch (id)

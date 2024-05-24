@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using UnityEngine;
+using DBFileReaderLib;
 
 public static partial class WDT {
 
@@ -69,7 +70,7 @@ public static partial class WDT {
         }
     }
 
-    private static void ReadMAID (BinaryReader br, uint WDTFileDataId)
+    private static void ReadMAID (BinaryReader br, int WDTFileDataId)
     {
         for (var x = 0; x < 64; x++)
         {

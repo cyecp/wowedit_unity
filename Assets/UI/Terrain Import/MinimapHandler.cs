@@ -18,7 +18,7 @@ public class MinimapHandler : MonoBehaviour {
     public GameObject SelectPlayerBlockIcon_prefab;
     public GameObject LoadingText;
     public Vector2 currentSelectedPlayerSpawn;
-    public uint FileDataId;
+    public int FileDataId;
 
     private List<uint> MinimapFileList = new List<uint>();
     private int firstxCoord;
@@ -156,7 +156,7 @@ public class MinimapHandler : MonoBehaviour {
         // }
     }
 
-    public void LoadBlankMinimaps(uint fileDataId)
+    public void LoadBlankMinimaps(int fileDataId)
     {
         FileDataId = fileDataId;
         ClearData();

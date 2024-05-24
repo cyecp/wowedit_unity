@@ -15,16 +15,16 @@ namespace Assets.Data.WoW_Format_Parsers.ADT
             public List<TextureChunkData> textureChunksData = new List<TextureChunkData>();
 
             // Terrain textures //
-            public List<uint> terrainTextureFileDataIds = new List<uint>();
-            public Dictionary<uint, Texture2Ddata> terrainTextures = new Dictionary<uint, Texture2Ddata>();
+            public List<int> terrainTextureFileDataIds = new List<int>();
+            public Dictionary<int, Texture2Ddata> terrainTextures = new Dictionary<int, Texture2Ddata>();
             public List<byte[]> atlassedAlphaLayers = new List<byte[]>();
 
             // MTXP data //
             public bool MTXP = false;
-            public Dictionary<uint, Flags.TerrainTextureFlag> textureFlags = new Dictionary<uint, Flags.TerrainTextureFlag>();
-            public Dictionary<uint, float> heightScales = new Dictionary<uint, float>();
-            public Dictionary<uint, float> heightOffsets = new Dictionary<uint, float>();
-            public Dictionary<uint, Texture2Ddata> terrainHTextures = new Dictionary<uint, Texture2Ddata>();
+            public Dictionary<int, Flags.TerrainTextureFlag> textureFlags = new Dictionary<int, Flags.TerrainTextureFlag>();
+            public Dictionary<int, float> heightScales = new Dictionary<int, float>();
+            public Dictionary<int, float> heightOffsets = new Dictionary<int, float>();
+            public Dictionary<int, Texture2Ddata> terrainHTextures = new Dictionary<int, Texture2Ddata>();
         }
 
         public class TextureChunkData

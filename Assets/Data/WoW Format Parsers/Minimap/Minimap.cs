@@ -66,7 +66,7 @@ public class Minimap : MonoBehaviour
     }
 
     // Create Minimap Blocks //
-    public void Load(uint WdtFileDataId, GameObject scrollParent)
+    public void Load(int WdtFileDataId, GameObject scrollParent)
     {
         ScrollParent = scrollParent;
         RemainingMinimaps = 1; // resetting above 0
@@ -116,7 +116,7 @@ public class Minimap : MonoBehaviour
 
     public struct MinimapRequest
     {
-        public uint fileDataId;
+        public int fileDataId;
         public Vector2 coords;
     }
 

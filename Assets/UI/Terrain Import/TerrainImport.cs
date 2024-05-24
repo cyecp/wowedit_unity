@@ -9,6 +9,7 @@ using System.Linq;
 using UnityEngine;
 using UnityEngine.UI;
 using static DB2;
+using DBFileReaderLib;
 
 public class TerrainImport : MonoBehaviour
 {
@@ -41,7 +42,7 @@ public class TerrainImport : MonoBehaviour
     public Dictionary<string, GameObject> MapTabs = new Dictionary<string, GameObject>();
     public static bool Initialized = false;
     public Vector2 currentSelectedPlayerSpawn = new Vector2(0, 0); // default
-    public uint selectedWDTId;
+    public int selectedWDTId;
     public Storage<MapRecord> MapRecords;
     public Dictionary<string, MapRecord> miniMap = new Dictionary<string, MapRecord>();
 

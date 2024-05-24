@@ -143,5 +143,7 @@ namespace Assets.Data.WoW_Format_Parsers
         MPHD = 0x4d504844,
         MAIN = 0x4d41494e,
         MAID = 0x4d414944,
+        MWMO = 0x4d574d4f,
+        MODF = 0x4d4f4446,
     }
 }

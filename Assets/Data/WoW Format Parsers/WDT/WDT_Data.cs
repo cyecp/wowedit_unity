@@ -12,17 +12,17 @@ public static partial class WDT  {
         public bool[,] HasADT = new bool[64,64];
     }
 
-    public static Dictionary<uint, WDTflagsdata> Flags = new Dictionary<uint, WDTflagsdata>(); // flags in a mapname dictionary (one wdt per map)
+    public static Dictionary<int, WDTflagsdata> Flags = new Dictionary<int, WDTflagsdata>(); // flags in a mapname dictionary (one wdt per map)
     public static Dictionary<(int, int), MapFileDataIds> WDTEntries = new Dictionary<(int, int), MapFileDataIds>();
     public struct MapFileDataIds
     {
-        public uint RootADT;
-        public uint OBJ0ADT;
-        public uint OBJ1ADT;
-        public uint TEX0ADT;
-        public uint LODADT;
-        public uint MapTexture;
-        public uint MapTextureN;
-        public uint MiniMapTexture;
+        public int RootADT;
+        public int OBJ0ADT;
+        public int OBJ1ADT;
+        public int TEX0ADT;
+        public int LODADT;
+        public int MapTexture;
+        public int MapTextureN;
+        public int MiniMapTexture;
     }
 }

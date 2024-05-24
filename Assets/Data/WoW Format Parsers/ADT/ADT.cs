@@ -216,7 +216,7 @@ namespace Assets.Data.WoW_Format_Parsers.ADT
         }
 
         // Run Terrain Mesh Parser //
-        public static void LoadTerrainMesh(uint AdtFileDataId, CASCHandler Handler)
+        public static void LoadTerrainMesh(int AdtFileDataId, CASCHandler Handler)
         {
             ThreadWorkingMesh = true;
             long millisecondsStart = DateTime.Now.Ticks / TimeSpan.TicksPerMillisecond;
@@ -237,7 +237,7 @@ namespace Assets.Data.WoW_Format_Parsers.ADT
         }
 
         // Run Terrain Texture Parser //
-        public static void LoadTerrainTextures(uint TexAdtFileId, CASCHandler Handler, uint WdtFileDataId)
+        public static void LoadTerrainTextures(int TexAdtFileId, CASCHandler Handler, int WdtFileDataId)
         {
             ThreadWorkingTextures = true;
             long millisecondsStart = DateTime.Now.Ticks / TimeSpan.TicksPerMillisecond;
@@ -260,7 +260,7 @@ namespace Assets.Data.WoW_Format_Parsers.ADT
         }
 
         // Run Terrain Models Parser //
-        public static void LoadTerrainModels(uint OBJFileDataId, Vector2 Coords, CASCHandler Handler)
+        public static void LoadTerrainModels(int OBJFileDataId, Vector2 Coords, CASCHandler Handler)
         {
             ThreadWorkingModels = true;
             long millisecondsStart = DateTime.Now.Ticks / TimeSpan.TicksPerMillisecond;
@@ -281,7 +281,7 @@ namespace Assets.Data.WoW_Format_Parsers.ADT
         }
 
         // Terrain Mesh Parser //
-        private static void ParseADT_Main(uint RootAdtFileDataId, CASCHandler Handler)  // MS version
+        private static void ParseADT_Main(int RootAdtFileDataId, CASCHandler Handler)  // MS version
         {
             ADTRoot r = new ADTRoot();
             int MCNKchunkNumber = 0;
@@ -327,7 +327,7 @@ namespace Assets.Data.WoW_Format_Parsers.ADT
         }
 
         // Terrain Texture Parser //
-        private static void ParseADT_Tex(uint TexFileDataId, CASCHandler Handler, uint WdtFileDataId)
+        private static void ParseADT_Tex(int TexFileDataId, CASCHandler Handler, int WdtFileDataId)
         {
             ADTTex t = new ADTTex();
             int MCNKchunkNumber = 0;
@@ -376,7 +376,7 @@ namespace Assets.Data.WoW_Format_Parsers.ADT
         }
 
         // Terrain Models Parser //
-        public static void ParseADT_Obj(uint OBJFileDataId, CASCHandler Handler)
+        public static void ParseADT_Obj(int OBJFileDataId, CASCHandler Handler)
         {
             ADTObj o = new ADTObj();
             int MCNKchunkNumber = 0;

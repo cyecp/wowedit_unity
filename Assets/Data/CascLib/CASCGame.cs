@@ -5,7 +5,6 @@ namespace CASCLib
 {
     public enum CASCGameType
     {
-        Unknown,
         HotS,
         WoW,
         D3,
@@ -17,137 +16,105 @@ namespace CASCLib
         Client,
         S1,
         WC3,
-        Destiny2
+        Destiny2,
+        D2R,
+        Wlby,
+        Viper,
+        Odin,
+        Lazarus,
+        Fore,
+        Zeus,
+        Rtro,
+        Anbs,
+        D4,
+        DRTL,
+        DRTL2,
+        WC1,
+        WC2,
+        Gryphon
     }
 
     public class CASCGame
     {
-        public static CASCGameType DetectLocalGame(string path)
+        public static CASCGameType? DetectLocalGame(string path, string product, string buildKey)
         {
-            if (Directory.Exists(Path.Combine(path, "HeroesData")))
-                return CASCGameType.HotS;
+            string[] dirs = Directory.GetDirectories(path, "*", SearchOption.AllDirectories);
 
-            if (Directory.Exists(Path.Combine(path, "SC2Data")))
-                return CASCGameType.S2;
-
-            if (Directory.Exists(Path.Combine(path, "Hearthstone_Data")))
-                return CASCGameType.Hearthstone;
-
-            if (File.Exists(Path.Combine(path, "Warcraft III.exe")))
-                return CASCGameType.WC3;
-
-            if (Directory.Exists(Path.Combine(path, "Data")))
+            foreach (var dir in dirs)
             {
-                if (File.Exists(Path.Combine(path, "Diablo III.exe")))
-                    return CASCGameType.D3;
-
-                if (File.Exists(Path.Combine(path, "Wow.exe")))
-                    return CASCGameType.WoW;
-
-                if (File.Exists(Path.Combine(path, "WowT.exe")))
-                    return CASCGameType.WoW;
-
-                if (File.Exists(Path.Combine(path, "WowB.exe")))
-                    return CASCGameType.WoW;
-
-                string[] subFolders = new string[] { "_retail_", "_ptr_", "_classic_", "_classic_beta_" };
-                string[] wowBins = new string[] { "Wow.exe", "WowT.exe", "WowB.exe" };
-
-                foreach (var sf in subFolders)
+                string buildCfgPath = Path.Combine(dir, buildKey);
+                if (File.Exists(buildCfgPath))
                 {
-                    foreach (var wb in wowBins)
+                    using (Stream stream = new FileStream(buildCfgPath, FileMode.Open))
                     {
-                        if (File.Exists(Path.Combine(path, sf, wb)))
-                            return CASCGameType.WoW;
+                        KeyValueConfig cfg = KeyValueConfig.ReadKeyValueConfig(stream);
+                        string buildUid = cfg["build-uid"][0];
+                        if (buildUid != product)
+                            return null;
+                        return DetectGameByUid(cfg["build-uid"][0]);
                     }
                 }
-
-                if (File.Exists(Path.Combine(path, "Agent.exe")))
-                    return CASCGameType.Agent;
-
-                if (File.Exists(Path.Combine(path, "Battle.net.exe")))
-                    return CASCGameType.Bna;
-
-                if (File.Exists(Path.Combine(path, "Overwatch.exe")))
-                    return CASCGameType.Overwatch;
-
-                if (File.Exists(Path.Combine(path, "StarCraft.exe")))
-                    return CASCGameType.S1;
             }
-
-            throw new Exception("Unable to detect game type by path");
+            return null;
         }
 
-        public static CASCGameType DetectOnlineGame(string uid)
+        public static CASCGameType DetectGameByUid(string uid)
         {
-            if (uid.StartsWith("hero"))
-                return CASCGameType.HotS;
-
-            if (uid.StartsWith("hs"))
-                return CASCGameType.Hearthstone;
-
-            if (uid.StartsWith("w3"))
-                return CASCGameType.WC3;
-
-            if (uid.StartsWith("s1"))
-                return CASCGameType.S1;
-
-            if (uid.StartsWith("s2"))
-                return CASCGameType.S2;
-
-            if (uid.StartsWith("wow"))
-                return CASCGameType.WoW;
-
-            if (uid.StartsWith("d3"))
-                return CASCGameType.D3;
-
-            if (uid.StartsWith("agent"))
-                return CASCGameType.Agent;
-
-            if (uid.StartsWith("pro"))
-                return CASCGameType.Overwatch;
-
-            if (uid.StartsWith("bna"))
-                return CASCGameType.Bna;
-
-            if (uid.StartsWith("clnt"))
-                return CASCGameType.Client;
-
-            if (uid.StartsWith("dst2"))
-                return CASCGameType.Destiny2;
-
-            throw new Exception("Unable to detect game type by uid");
+            return uid switch
+            {
+                _ when uid.StartsWith("hero") => CASCGameType.HotS,
+                _ when uid.StartsWith("hs") => CASCGameType.Hearthstone,
+                _ when uid.StartsWith("w3") => CASCGameType.WC3,
+                _ when uid.StartsWith("s1") => CASCGameType.S1,
+                _ when uid.StartsWith("s2") => CASCGameType.S2,
+                _ when uid.StartsWith("wow") => CASCGameType.WoW,
+                _ when uid.StartsWith("d3") => CASCGameType.D3,
+                _ when uid.StartsWith("agent") => CASCGameType.Agent,
+                _ when uid.StartsWith("pro") => CASCGameType.Overwatch,
+                _ when uid.StartsWith("bna") => CASCGameType.Bna,
+                _ when uid.StartsWith("clnt") => CASCGameType.Client,
+                _ when uid.StartsWith("dst2") => CASCGameType.Destiny2,
+                _ when uid.StartsWith("osi") => CASCGameType.D2R,
+                _ when uid.StartsWith("wlby") => CASCGameType.Wlby,
+                _ when uid.StartsWith("viper") => CASCGameType.Viper,
+                _ when uid.StartsWith("odin") => CASCGameType.Odin,
+                _ when uid.StartsWith("lazr") => CASCGameType.Lazarus,
+                _ when uid.StartsWith("fore") => CASCGameType.Fore,
+                _ when uid.StartsWith("zeus") => CASCGameType.Zeus,
+                _ when uid.StartsWith("rtro") => CASCGameType.Rtro,
+                _ when uid.StartsWith("anbs") => CASCGameType.Anbs,
+                _ when uid.StartsWith("fenris") => CASCGameType.D4,
+                _ when uid.StartsWith("drtl2") => CASCGameType.DRTL2,
+                _ when uid.StartsWith("drtl") => CASCGameType.DRTL,
+                _ when uid.StartsWith("war1") => CASCGameType.WC1,
+                _ when uid.StartsWith("w2bn") => CASCGameType.WC2,
+                _ when uid.StartsWith("gryphon") => CASCGameType.Gryphon,
+                _ => throw new Exception($"Unable to detect game type by uid {uid}")
+            };
         }
 
         public static string GetDataFolder(CASCGameType gameType)
         {
-            if (gameType == CASCGameType.HotS)
-                return "HeroesData";
-
-            if (gameType == CASCGameType.S2)
-                return "SC2Data";
-
-            if (gameType == CASCGameType.Hearthstone)
-                return "Hearthstone_Data";
-
-            if (gameType == CASCGameType.WoW || gameType == CASCGameType.D3)
-                return "Data";
-
-            if (gameType == CASCGameType.Overwatch)
-                return "data/casc";
-
-            throw new Exception("GetDataFolder called with unsupported gameType");
+            return gameType switch
+            {
+                CASCGameType.HotS => "HeroesData",
+                CASCGameType.S2 => "SC2Data",
+                CASCGameType.Hearthstone => "Hearthstone_Data",
+                CASCGameType.WoW or CASCGameType.D3 or CASCGameType.D4 or CASCGameType.WC3 or CASCGameType.D2R => "Data",
+                CASCGameType.Odin => "Data",
+                CASCGameType.Overwatch => "data/casc",
+                _ => throw new Exception("GetDataFolder called with unsupported gameType")
+            };
         }
 
         public static bool SupportsLocaleSelection(CASCGameType gameType)
         {
-            return gameType == CASCGameType.D3 ||
-                gameType == CASCGameType.WoW ||
-                gameType == CASCGameType.HotS ||
-                gameType == CASCGameType.S2 ||
-                gameType == CASCGameType.S1 ||
-                gameType == CASCGameType.WC3 ||
-                gameType == CASCGameType.Overwatch;
+            return gameType is CASCGameType.D3 or
+                CASCGameType.WoW or
+                CASCGameType.HotS or
+                CASCGameType.S2 or
+                CASCGameType.S1 or
+                CASCGameType.Overwatch;
         }
     }
 }
